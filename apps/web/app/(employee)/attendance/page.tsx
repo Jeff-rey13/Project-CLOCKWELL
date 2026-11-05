@@ -1,14 +1,21 @@
+'use client';
+
+import { useSyncExternalStore } from 'react';
 import { AttendanceList } from '@/components/AttendanceList';
 import { PreviewNote } from '@/components/layout/PreviewNote';
-import { demoAttendance } from '@/lib/demo-data';
+import { demoAttendance, type DemoAttendanceRow } from '@/lib/demo-data';
+import { getDoneShifts, subscribe } from '@/lib/preview-shift';
+
+const noShifts: DemoAttendanceRow[] = [];
+const monthFmt = new Intl.DateTimeFormat('en-SG', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 
 export default function AttendancePage() {
-  const byMonth = new Map<string, typeof demoAttendance>();
-  for (const row of demoAttendance) {
+  const doneShifts = useSyncExternalStore(subscribe, getDoneShifts, () => noShifts);
+  const byMonth = new Map<string, DemoAttendanceRow[]>();
+  for (const row of [...doneShifts, ...demoAttendance]) {
     const key = row.date.slice(0, 7);
     byMonth.set(key, [...(byMonth.get(key) ?? []), row]);
   }
-  const monthFmt = new Intl.DateTimeFormat('en-SG', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 
   return (
     <>

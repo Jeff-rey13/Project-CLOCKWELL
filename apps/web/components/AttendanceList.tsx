@@ -15,8 +15,8 @@ export function AttendanceList({ rows }: { rows: DemoAttendanceRow[] }) {
   }
   return (
     <ul className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
-      {rows.map((r) => (
-        <li key={r.date} className="flex items-center justify-between gap-3 px-4 py-3">
+      {rows.map((r, i) => (
+        <li key={`${r.date}-${r.clockIn}-${i}`}className="flex items-center justify-between gap-3 px-4 py-3">
           <div>
             <p className="text-sm font-semibold">{dateFmt.format(new Date(`${r.date}T00:00:00Z`))}</p>
             <p className="font-mono text-xs text-muted">

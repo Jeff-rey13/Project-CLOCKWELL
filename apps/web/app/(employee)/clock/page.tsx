@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { CameraRotate, MapPin, Warning } from '@phosphor-icons/react';
 import { ERRORS, evaluateClockIn, type ClockEvaluation, type ErrorCode } from '@app/shared';
@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/Toast';
 import { captureSelfie, openCamera, stopCamera } from '@/lib/camera';
 import { getFix, type Fix } from '@/lib/geo';
 import { demoRules, demoSiteNames, demoSites } from '@/lib/demo-data';
+import { endShift, getOpenShift, hhmm, startShift, subscribe } from '@/lib/preview-shift';
 
 export default function ClockPage() {
   const router = useRouter();
@@ -23,6 +24,8 @@ export default function ClockPage() {
   const [geoError, setGeoError] = useState<ErrorCode | null>(null);
   const [preview, setPreview] = useState<ClockEvaluation | null>(null);
   const [busy, setBusy] = useState(false);
+  const openShift = useSyncExternalStore(subscribe, getOpenShift, () => null);
+  const isOut = openShift !== null;
 
   useEffect(() => {
     let cancelled = false;
@@ -63,9 +66,22 @@ export default function ClockPage() {
     }
     setBusy(true);
     try {
-      const blob = await captureSelfie(videoRef.current);
-      // Preview build: upload and the clock-in function are wired in task 1.7.
-      toast(`Clocked in. Selfie ready (${Math.round(blob.size / 1024)} KB).`);
+      await captureSelfie(videoRef.current);
+      // Preview build: upload and the clock-in / clock-out functions are wired in task 1.7.
+      const now = new Date();
+      if (isOut) {
+        endShift(now);
+        toast(`Clocked out at ${hhmm(now)}.`);
+      } else {
+        const evaluation =
+          preview ??
+          evaluateClockIn(
+            { serverTime: now, deviceTime: now, position: demoSites[0]!, accuracyM: 0, sites: demoSites, home: null },
+            demoRules,
+          );
+        startShift({ clockInAt: now.toISOString(), status: evaluation.status, flags: evaluation.flags });
+        toast(`Clocked in at ${hhmm(now)}.`);
+      }
       router.push('/home/');
     } catch {
       toast(ERRORS.SERVER_ERROR.message, 'danger');
@@ -78,7 +94,10 @@ export default function ClockPage() {
 
   return (
     <>
-      <h1 className="mb-4 text-2xl">Clock in</h1>
+      <h1 className="mb-1 text-2xl">{isOut ? 'Clock out' : 'Clock in'}</h1>
+      <p className="mb-4 text-sm text-muted">
+        {isOut ? `Clocked in at ${hhmm(new Date(openShift.clockInAt))}` : ' '}
+      </p>
 
       <div className="relative mb-4 aspect-[3/4] overflow-hidden rounded-card bg-solid">
         <video
@@ -141,10 +160,14 @@ export default function ClockPage() {
             <dd className="text-right font-mono">
               {preview.distanceM === null ? '-' : `${preview.distanceM.toLocaleString('en-SG')} m`}
             </dd>
-            <dt className="text-muted">Status now</dt>
-            <dd className="text-right">
-              <StatusChip status={preview.status} />
-            </dd>
+            {isOut ? null : (
+              <>
+                <dt className="text-muted">Status now</dt>
+                <dd className="text-right">
+                  <StatusChip status={preview.status} />
+                </dd>
+              </>
+            )}
           </dl>
         ) : (
           <p className="text-sm text-muted">Finding your location</p>
@@ -155,7 +178,7 @@ export default function ClockPage() {
       </Card>
 
       <Button block onClick={onClockIn} loading={busy}>
-        Take selfie and clock in
+        {isOut ? 'Take selfie and clock out' : 'Take selfie and clock in'}
       </Button>
       <p className="mt-3 text-center text-xs text-muted">Time is recorded by the server.</p>
     </>

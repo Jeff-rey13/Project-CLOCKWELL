@@ -1,12 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { MapPin, Airplane, FirstAidKit } from '@phosphor-icons/react';
 import { AttendanceList } from '@/components/AttendanceList';
 import { PreviewNote } from '@/components/layout/PreviewNote';
 import { Card } from '@/components/ui/Card';
+import { StatusChip } from '@/components/ui/Chip';
 import { demoAttendance, demoShift, demoTiles, demoUser, demoCompany } from '@/lib/demo-data';
+import { getDoneShifts, getOpenShift, hhmm, subscribe } from '@/lib/preview-shift';
+
+const noShifts: never[] = [];
 
 function greeting(hour: number) {
   if (hour < 12) return 'Good morning';
@@ -32,6 +36,9 @@ export default function HomePage() {
   const now = useNow();
   const tz = 'Asia/Singapore';
   const hour = now ? Number(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: tz }).format(now)) : 9;
+  const openShift = useSyncExternalStore(subscribe, getOpenShift, () => null);
+  const doneShifts = useSyncExternalStore(subscribe, getDoneShifts, () => noShifts);
+  const rows = [...doneShifts, ...demoAttendance];
 
   return (
     <>
@@ -55,14 +62,21 @@ export default function HomePage() {
             ? new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: tz }).format(now)
             : '--:--'}
         </p>
-        <p className="mb-4 flex items-center gap-1.5 text-sm opacity-70">
-          <MapPin size={16} aria-hidden /> {demoUser.office} office. Location is checked when you clock in.
-        </p>
+        {openShift ? (
+          <div className="mb-4 flex items-center gap-2 text-sm">
+            <span className="opacity-70">Clocked in at {hhmm(new Date(openShift.clockInAt))}</span>
+            <StatusChip status={openShift.status} />
+          </div>
+        ) : (
+          <p className="mb-4 flex items-center gap-1.5 text-sm opacity-70">
+            <MapPin size={16} aria-hidden /> {demoUser.office} office. Location is checked when you clock in.
+          </p>
+        )}
         <Link
           href="/clock/"
           className="flex min-h-12 w-full items-center justify-center rounded-full bg-on-solid text-base font-semibold text-solid"
         >
-          Clock in
+          {openShift ? 'Clock out' : 'Clock in'}
         </Link>
       </section>
 
@@ -97,7 +111,7 @@ export default function HomePage() {
             See all
           </Link>
         </div>
-        <AttendanceList rows={demoAttendance.slice(0, 3)} />
+        <AttendanceList rows={rows.slice(0, 3)} />
       </section>
     </>
   );
