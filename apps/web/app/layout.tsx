@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { PRODUCT_NAME } from '@app/shared';
 import { ToastProvider } from '@/components/ui/Toast';
+import { QueryProvider } from '@/lib/query-provider';
 import { SessionProvider } from '@/lib/session';
 import './globals.css';
 
@@ -27,7 +28,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
         <ToastProvider>
-          <SessionProvider>{children}</SessionProvider>
+          <QueryProvider>
+            <SessionProvider>{children}</SessionProvider>
+          </QueryProvider>
         </ToastProvider>
       </body>
     </html>

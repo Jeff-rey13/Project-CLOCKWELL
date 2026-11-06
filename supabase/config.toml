@@ -427,3 +427,11 @@ verify_jwt = false
 import_map = "./functions/deno.json"
 
 
+[functions.clock-in]
+verify_jwt = false
+import_map = "./functions/deno.json"
+
+[functions.clock-out]
+verify_jwt = false
+import_map = "./functions/deno.json"
+

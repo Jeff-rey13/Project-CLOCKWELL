@@ -32,6 +32,13 @@ insert into storage.objects (bucket_id, name, owner_id) values
   ('selfies', '10000000-0000-0000-0000-000000000001/20000000-0000-0000-0000-000000000001/2026-11-04/a.webp', '20000000-0000-0000-0000-000000000001'),
   ('selfies', '10000000-0000-0000-0000-000000000002/20000000-0000-0000-0000-000000000003/2026-11-04/b.webp', '20000000-0000-0000-0000-000000000003');
 
+select set_config('t.att_aisyah', (select count(*) from public.attendance
+  where user_id = '20000000-0000-0000-0000-000000000001')::text, true);
+select set_config('t.selfies_aisyah', (select count(*) from storage.objects where bucket_id = 'selfies'
+  and name like '10000000-0000-0000-0000-000000000001/20000000-0000-0000-0000-000000000001/%')::text, true);
+select set_config('t.selfies_a', (select count(*) from storage.objects where bucket_id = 'selfies'
+  and name like '10000000-0000-0000-0000-000000000001/%')::text, true);
+
 select is(
   (select count(*)::int from pg_tables where schemaname = 'public' and not rowsecurity),
   0, 'RLS is still enabled on every public table');
@@ -47,8 +54,10 @@ select is((select count(*)::int from public.claim_policies), 1, 'employee reads 
 select is((select count(*)::int from public.audit_log), 0, 'employee reads no audit log at all');
 select is((select count(*)::int from public.feature_flags), 1, 'employee reads global flags, not other companies');
 select is((select bool_and(is_corrected) from public.attendance_effective), true, 'effective view shows the correction');
-select is((select count(*)::int from public.attendance_effective), 1, 'effective view respects RLS');
-select is((select count(*)::int from storage.objects where bucket_id = 'selfies'), 1, 'employee reads only own selfies');
+select is((select count(*)::int from public.attendance_effective), current_setting('t.att_aisyah')::int,
+  'effective view respects RLS');
+select is((select count(*)::int from storage.objects where bucket_id = 'selfies'),
+  current_setting('t.selfies_aisyah')::int, 'employee reads only own selfies');
 select throws_ok(
   $$insert into public.leave_requests (company_id, user_id, leave_type_id, start_date, end_date, days, client_request_id)
     values ('10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001',
@@ -79,8 +88,10 @@ select is((select count(*)::int from public.medical_claims), 1, 'HR reads own co
 select is(
   (select count(*)::int from public.audit_log where company_id <> '10000000-0000-0000-0000-000000000001'),
   0, 'HR reads no audit log of other companies');
-select is((select count(*)::int from public.attendance_corrections), 1, 'HR reads own company corrections');
-select is((select count(*)::int from storage.objects where bucket_id = 'selfies'), 2, 'HR reads own company selfies only');
+select is((select count(*)::int from public.attendance_corrections), current_setting('t.att_aisyah')::int,
+  'HR reads own company corrections (one per shift created above)');
+select is((select count(*)::int from storage.objects where bucket_id = 'selfies'),
+  current_setting('t.selfies_a')::int + 1, 'HR reads own company selfies only (plus the one uploaded above)');
 
 -- ---------------------------------------------------------------- employee of B (kenneth)
 select pg_temp.act_as('20000000-0000-0000-0000-000000000003');

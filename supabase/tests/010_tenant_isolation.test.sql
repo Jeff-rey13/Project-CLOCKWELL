@@ -31,6 +31,12 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end $$;
 
+-- Ground truth read as the owner, so counts do not depend on rows added during local use.
+select set_config('t.att_aisyah', (select count(*) from public.attendance
+  where user_id = '20000000-0000-0000-0000-000000000001')::text, true);
+select set_config('t.att_a', (select count(*) from public.attendance
+  where company_id = '10000000-0000-0000-0000-000000000001')::text, true);
+
 -- ---------------------------------------------------------------- structure
 select is(
   (select count(*)::int from pg_tables where schemaname = 'public' and not rowsecurity),
@@ -39,7 +45,8 @@ select is(
 -- ---------------------------------------------------------------- employee of A (aisyah)
 select pg_temp.act_as('20000000-0000-0000-0000-000000000001');
 select is((select count(*)::int from public.profiles), 1, 'employee reads only own profile');
-select is((select count(*)::int from public.attendance), 1, 'employee reads only own attendance');
+select is((select count(*)::int from public.attendance), current_setting('t.att_aisyah')::int,
+  'employee reads only own attendance');
 select is((select count(*)::int from public.employee_rules), 1, 'employee reads only own rules');
 select is((select count(*)::int from public.offices), 2, 'employee reads own company offices only');
 select is((select count(*)::int from public.sites), 2, 'employee reads own company sites only');
@@ -64,8 +71,8 @@ select pg_temp.act_as('20000000-0000-0000-0000-000000000002');
 select is((select count(*)::int from public.profiles), 2, 'HR reads all profiles in own company');
 select is((select count(*)::int from public.employee_rules), 2, 'HR reads all rules in own company');
 select is(
-  (select count(*)::int from public.attendance where company_id = '10000000-0000-0000-0000-000000000001'),
-  1, 'HR reads attendance of own company');
+  (select count(*)::int from public.attendance), current_setting('t.att_a')::int,
+  'HR reads all attendance of own company and nothing else');
 select is(
   (select count(*)::int from public.attendance where company_id = '10000000-0000-0000-0000-000000000002'),
   0, 'HR of A sees no attendance of B');
