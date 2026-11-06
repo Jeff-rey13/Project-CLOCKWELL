@@ -21,7 +21,8 @@ export default function ProfilePage() {
 
   const signOut = async () => {
     setBusy(true);
-    await client.auth.signOut();
+    // Signs out this device only. Offboarding revokes every session server side.
+    await client.auth.signOut({ scope: 'local' });
     try {
       window.sessionStorage.removeItem('company-target');
     } catch {

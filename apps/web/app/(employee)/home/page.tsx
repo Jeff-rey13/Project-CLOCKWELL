@@ -1,16 +1,23 @@
 'use client';
 
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { MapPin, Airplane, FirstAidKit } from '@phosphor-icons/react';
+import { Airplane, FirstAidKit, MapPin } from '@phosphor-icons/react';
 import { AttendanceList } from '@/components/AttendanceList';
-import { PreviewNote } from '@/components/layout/PreviewNote';
+import { ModeSwitch } from '@/components/layout/ModeSwitch';
 import { Card } from '@/components/ui/Card';
 import { StatusChip } from '@/components/ui/Chip';
-import { demoAttendance, demoShift, demoTiles, demoUser, demoCompany } from '@/lib/demo-data';
-import { getDoneShifts, getOpenShift, hhmm, subscribe } from '@/lib/preview-shift';
-
-const noShifts: never[] = [];
+import { Skeleton } from '@/components/ui/Skeleton';
+import {
+  localDate,
+  localTime,
+  useAttendance,
+  useBalances,
+  useClaimsPending,
+  useOpenShift,
+  useWorkplace,
+} from '@/lib/queries';
+import { useSession } from '@/lib/session';
 
 function greeting(hour: number) {
   if (hour < 12) return 'Good morning';
@@ -32,74 +39,94 @@ function useNow() {
   return now;
 }
 
+const fmtDays = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+
 export default function HomePage() {
   const now = useNow();
-  const tz = 'Asia/Singapore';
-  const hour = now ? Number(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: tz }).format(now)) : 9;
-  const openShift = useSyncExternalStore(subscribe, getOpenShift, () => null);
-  const doneShifts = useSyncExternalStore(subscribe, getDoneShifts, () => noShifts);
-  const rows = [...doneShifts, ...demoAttendance];
+  const { profile, companyName } = useSession();
+  const workplace = useWorkplace();
+  const openShift = useOpenShift();
+  const attendance = useAttendance(60);
+  const year = new Date().getFullYear();
+  const balances = useBalances(year);
+  const claimsPending = useClaimsPending();
+
+  const tz = workplace.data?.office.timezone ?? 'Asia/Singapore';
+  const hour = now
+    ? Number(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: tz }).format(now))
+    : 9;
+  const month = now ? localDate(now, tz).slice(0, 7) : '';
+  const daysPresent = new Set((attendance.data ?? []).filter((r) => r.work_date.startsWith(month)).map((r) => r.work_date)).size;
+  const left = (code: string) => {
+    const b = balances.data?.find((x) => x.leave_types?.code === code);
+    return b ? fmtDays(b.entitled - b.used) : '-';
+  };
+  const office = workplace.data?.office;
+  const firstName = profile?.full_name.split(' ')[0] ?? '';
 
   return (
     <>
-      <PreviewNote />
-      <header className="mb-5">
-        <p className="text-sm text-muted">
-          {now
-            ? new Intl.DateTimeFormat('en-SG', { weekday: 'long', day: 'numeric', month: 'long', timeZone: tz }).format(now)
-            : ' '}
-        </p>
-        <h1 className="text-2xl">
-          {greeting(hour)}, {demoUser.firstName}
-        </h1>
-        <p className="text-sm text-muted">{demoCompany.name}</p>
+      <header className="mb-5 flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm text-muted">
+            {now
+              ? new Intl.DateTimeFormat('en-SG', { weekday: 'long', day: 'numeric', month: 'long', timeZone: tz }).format(now)
+              : ' '}
+          </p>
+          <h1 className="text-2xl">
+            {greeting(hour)}, {firstName}
+          </h1>
+          <p className="text-sm text-muted">{companyName}</p>
+        </div>
+        {profile?.app_role === 'hr' ? <ModeSwitch mode="me" /> : null}
       </header>
 
       <section aria-label="Clock" className="mb-5 rounded-card bg-solid p-5 text-on-solid">
-        <p className="text-sm opacity-70">Shift {demoShift.start} to {demoShift.end}</p>
-        <p className="my-2 font-mono text-5xl font-semibold tracking-tight" aria-live="off">
-          {now
-            ? new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: tz }).format(now)
-            : '--:--'}
+        <p className="text-sm opacity-70">
+          {office ? `Shift ${office.shift_start.slice(0, 5)} to ${office.shift_end.slice(0, 5)}` : ' '}
         </p>
-        {openShift ? (
+        <p className="my-2 font-mono text-5xl font-semibold tracking-tight" aria-live="off">
+          {now ? localTime(now, tz) : '--:--'}
+        </p>
+        {openShift.data ? (
           <div className="mb-4 flex items-center gap-2 text-sm">
-            <span className="opacity-70">Clocked in at {hhmm(new Date(openShift.clockInAt))}</span>
-            <StatusChip status={openShift.status} />
+            <span className="opacity-70">Clocked in at {localTime(openShift.data.clock_in_at, tz)}</span>
+            <StatusChip status={openShift.data.status} />
           </div>
         ) : (
           <p className="mb-4 flex items-center gap-1.5 text-sm opacity-70">
-            <MapPin size={16} aria-hidden /> {demoUser.office} office. Location is checked when you clock in.
+            <MapPin size={16} aria-hidden /> {office ? `${office.name} office. ` : ''}Location is checked when you clock in.
           </p>
         )}
         <Link
           href="/clock/"
           className="flex min-h-12 w-full items-center justify-center rounded-full bg-on-solid text-base font-semibold text-solid"
         >
-          {openShift ? 'Clock out' : 'Clock in'}
+          {openShift.isLoading ? 'Loading' : openShift.data ? 'Clock out' : 'Clock in'}
         </Link>
       </section>
 
       <section aria-label="Summary" className="mb-5 grid grid-cols-2 gap-3">
-        <Tile label="Days present this month" value={demoTiles.daysPresent} />
-        <Tile label="Annual leave left" value={demoTiles.annualLeft} />
-        <Tile label="Sick leave left" value={demoTiles.sickLeft} />
-        <Tile label="Claims pending" value={demoTiles.claimsPending} />
+        <Tile label="Days present this month" value={attendance.isLoading ? null : String(daysPresent)} />
+        <Tile label="Annual leave left" value={balances.isLoading ? null : left('annual')} />
+        <Tile label="Sick leave left" value={balances.isLoading ? null : left('sick')} />
+        <Tile label="Claims pending" value={claimsPending.isLoading ? null : String(claimsPending.data ?? 0)} />
       </section>
 
       <div className="mb-6 grid grid-cols-2 gap-3">
         <Link
-          href="/requests/"
+          href="/leave/new/"
           className="flex min-h-12 items-center justify-center gap-2 rounded-full border border-line-strong bg-surface text-sm font-semibold"
         >
           <Airplane size={18} aria-hidden /> Apply leave
         </Link>
-        <Link
-          href="/requests/"
-          className="flex min-h-12 items-center justify-center gap-2 rounded-full border border-line-strong bg-surface text-sm font-semibold"
+        <span
+          aria-disabled
+          title="Medical claims are coming in the next release"
+          className="flex min-h-12 items-center justify-center gap-2 rounded-full border border-dashed border-line-strong text-sm font-semibold text-muted"
         >
-          <FirstAidKit size={18} aria-hidden /> Medical claim
-        </Link>
+          <FirstAidKit size={18} aria-hidden /> Medical claim (soon)
+        </span>
       </div>
 
       <section aria-labelledby="recent">
@@ -111,16 +138,21 @@ export default function HomePage() {
             See all
           </Link>
         </div>
-        <AttendanceList rows={rows.slice(0, 3)} />
+        <AttendanceList
+          rows={attendance.data?.slice(0, 3)}
+          timezone={tz}
+          loading={attendance.isLoading}
+          failed={attendance.isError}
+        />
       </section>
     </>
   );
 }
 
-function Tile({ label, value }: { label: string; value: number }) {
+function Tile({ label, value }: { label: string; value: string | null }) {
   return (
     <Card className="p-3.5">
-      <p className="text-2xl font-bold tracking-tight">{value}</p>
+      {value === null ? <Skeleton className="mb-1 h-8 w-12" /> : <p className="text-2xl font-bold tracking-tight">{value}</p>}
       <p className="text-xs text-muted">{label}</p>
     </Card>
   );

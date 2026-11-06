@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Check, X } from '@phosphor-icons/react';
+import { ModeSwitch } from '@/components/layout/ModeSwitch';
 import { PreviewNote } from '@/components/layout/PreviewNote';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { Chip, StatusChip } from '@/components/ui/Chip';
@@ -21,6 +22,9 @@ export default function HrDashboardPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
+      <div className="mb-4 flex justify-end">
+        <ModeSwitch mode="hr" />
+      </div>
       <PreviewNote />
       <h1 className="mb-1 text-3xl">
         {demoHr.inToday} of {demoHr.headcount} in today

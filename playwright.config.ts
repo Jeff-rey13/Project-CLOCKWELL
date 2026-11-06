@@ -5,6 +5,9 @@ export default defineConfig({
   testDir: './e2e',
   timeout: 60_000,
   retries: 0,
+  // Flows share the seed users, so they run one at a time.
+  workers: 1,
+  fullyParallel: false,
   use: {
     baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:3000',
     ...devices['Pixel 7'],

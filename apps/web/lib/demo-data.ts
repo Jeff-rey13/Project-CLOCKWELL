@@ -1,61 +1,8 @@
 /**
- * Sample data for the preview build, matching the seed in docs/PRD.md section 9.
- * Used only until the screens are wired to Supabase (tasks 1.6 to 1.8).
+ * Sample figures for the HR dashboard preview only, marked "Preview build" on screen.
+ * Replaced by the dashboard SQL function and Realtime feed in task 2.3.
  */
-import type { AttendanceFlag, AttendanceStatus, EffectiveRules, Zone } from '@app/shared';
-
-export const demoCompany = {
-  slug: 'harbourline',
-  name: 'Harbourline Logistics',
-};
-
-export const demoUser = {
-  fullName: 'Aisyah Rahman',
-  firstName: 'Aisyah',
-  employeeCode: 'HL-0142',
-  department: 'Operations',
-  office: 'HQ',
-  appRole: 'employee' as const,
-};
-
-export const demoRules: EffectiveRules = {
-  workMode: 'onsite',
-  timezone: 'Asia/Singapore',
-  shiftStart: '09:00',
-  graceMinutes: 5,
-  homeDays: [],
-};
-
-export const demoShift = { start: '09:00', end: '18:00' };
-
-export const demoSites: Zone[] = [
-  { id: 'site-hq', kind: 'site', lat: 1.2794, lng: 103.8505, radiusM: 150 },
-];
-export const demoSiteNames: Record<string, string> = { 'site-hq': 'HQ, Marina View' };
-
-export const demoTiles = {
-  daysPresent: 3,
-  annualLeft: 11.5,
-  sickLeft: 14,
-  claimsPending: 1,
-};
-
-export interface DemoAttendanceRow {
-  date: string;
-  clockIn: string;
-  clockOut: string | null;
-  status: AttendanceStatus;
-  flags: AttendanceFlag[];
-  corrected: boolean;
-}
-
-export const demoAttendance: DemoAttendanceRow[] = [
-  { date: '2026-11-04', clockIn: '08:52', clockOut: '18:06', status: 'on_time', flags: [], corrected: false },
-  { date: '2026-11-03', clockIn: '09:04', clockOut: '18:01', status: 'grace', flags: [], corrected: false },
-  { date: '2026-11-02', clockIn: '09:21', clockOut: '18:15', status: 'late', flags: ['outside_zone'], corrected: false },
-  { date: '2026-10-30', clockIn: '08:47', clockOut: '17:58', status: 'on_time', flags: [], corrected: true },
-  { date: '2026-10-29', clockIn: '08:55', clockOut: '18:03', status: 'on_time', flags: [], corrected: false },
-];
+import type { AttendanceStatus } from '@app/shared';
 
 export const demoHr = {
   inToday: 41,
