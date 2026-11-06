@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { PRODUCT_NAME } from '@app/shared';
 import { ToastProvider } from '@/components/ui/Toast';
+import { SessionProvider } from '@/lib/session';
 import './globals.css';
 
 const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist-sans' });
@@ -25,7 +26,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          <SessionProvider>{children}</SessionProvider>
+        </ToastProvider>
       </body>
     </html>
   );

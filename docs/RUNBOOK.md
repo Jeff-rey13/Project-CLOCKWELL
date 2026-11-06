@@ -1,0 +1,51 @@
+# Runbook
+
+## Local setup
+
+Requirements: Node 20 or newer, pnpm 9, Docker Desktop (running), Deno 2.
+
+```sh
+pnpm install
+cp .env.example apps/web/.env.local     # then set the publishable key printed by `supabase start`
+pnpm exec supabase start                # local stack in Docker
+pnpm exec supabase db reset --local     # local only: applies migrations and seed
+pnpm functions                          # Edge Functions on http://127.0.0.1:54321/functions/v1
+pnpm dev                                # web app on http://localhost:3000
+```
+
+Sign in at `http://localhost:3000/login/?company=harbourline` with a seed user
+(`aisyah` employee, `meiling` HR; Meridian: `kenneth`). Seed passwords are for the local stack only.
+
+Local dashboard: `http://127.0.0.1:54323`. Local email inbox (password reset, invites): `http://127.0.0.1:54324`.
+
+To stop: `pnpm exec supabase stop` (keeps local data), stop `pnpm dev` and `pnpm functions`.
+
+## Checks
+
+```sh
+pnpm lint && pnpm typecheck && pnpm test
+pnpm exec supabase test db
+deno test --config supabase/functions/deno.json supabase/functions
+pnpm e2e                                # needs the local stack, functions and dev server running
+```
+
+## Edge Functions
+
+- Every function verifies the caller's JWT in code (`supabase/functions/_shared/auth.ts`), so
+  `verify_jwt = false` is set per function in `supabase/config.toml`. Add a `[functions.<name>]`
+  entry when adding a function; the local server will not start if an entry has no folder.
+- Shared rules come from `packages/shared` through `supabase/functions/_shared/app.ts`.
+- Logs are JSON lines with ids and error codes only. Never log names, emails, coordinates or paths.
+
+## Sign-in
+
+- `username-login` looks up the work email from company slug and username and signs in.
+  Any failure returns `INVALID_CREDENTIALS`. Rate limit: 5 attempts per username, 20 per IP, per 15 minutes
+  (`private.login_attempts`).
+- Claims `company_id`, `app_role`, `is_platform` are added by `public.custom_access_token_hook`
+  (enabled in `supabase/config.toml` under `[auth.hook.custom_access_token]`; enable the same hook in
+  each remote project's Auth settings).
+
+## Deploy, rollback, restore
+
+Written in Phase 3 (task 3.8). Remote deploys run only from GitHub Actions started by the owner.

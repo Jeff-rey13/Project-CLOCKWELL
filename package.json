@@ -11,11 +11,14 @@
     "lint": "eslint .",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "e2e": "playwright test",
+    "functions": "supabase functions serve"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
     "@next/eslint-plugin-next": "15",
+    "@playwright/test": "^1.65.0",
     "eslint": "^9.39.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "prettier": "^3.9.10",

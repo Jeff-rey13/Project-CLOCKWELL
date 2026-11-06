@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { haversineMeters } from './geo';
-import { countLeaveDays } from './leave-days';
-import { ERRORS, ERROR_CODES, toErrorCode } from './errors';
-import { clockEventSchema } from './schemas/clock';
-import { loginSchema } from './schemas/auth';
+import { haversineMeters } from './geo.ts';
+import { countLeaveDays } from './leave-days.ts';
+import { ERRORS, ERROR_CODES, toErrorCode } from './errors.ts';
+import { clockEventSchema } from './schemas/clock.ts';
+import { loginSchema } from './schemas/auth.ts';
 
 describe('haversineMeters', () => {
   it('is zero for the same point', () => {

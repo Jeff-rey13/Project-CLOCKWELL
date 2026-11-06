@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { clockInStatus, evaluateClockIn, type EffectiveRules } from './clock-rules';
-import type { Zone } from './geo';
+import { clockInStatus, evaluateClockIn, type EffectiveRules } from './clock-rules.ts';
+import type { Zone } from './geo.ts';
 
 const HQ: Zone = { id: 'site-hq', kind: 'site', lat: 1.284, lng: 103.851, radiusM: 150 };
 const HOME: Zone = { id: 'home', kind: 'home', lat: 1.35, lng: 103.94, radiusM: 200 };

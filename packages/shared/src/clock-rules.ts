@@ -1,5 +1,5 @@
-import { resolvePlace, type LatLng, type PlaceResult, type Zone } from './geo';
-import { localParts, timeToSeconds } from './time';
+import { resolvePlace, type LatLng, type PlaceResult, type Zone } from './geo.ts';
+import { localParts, timeToSeconds } from './time.ts';
 
 export type WorkMode = 'onsite' | 'hybrid' | 'remote' | 'field';
 export type AttendanceStatus = 'on_time' | 'grace' | 'late';
