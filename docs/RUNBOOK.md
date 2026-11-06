@@ -10,8 +10,12 @@ cp .env.example apps/web/.env.local     # then set the publishable key printed b
 pnpm exec supabase start                # local stack in Docker
 pnpm exec supabase db reset --local     # local only: applies migrations and seed
 pnpm functions                          # Edge Functions on http://127.0.0.1:54321/functions/v1
-pnpm dev                                # web app on http://localhost:3000
+pnpm dev                                # web app on http://localhost:3000 (slow: compiles pages on first visit)
 ```
+
+For testing or demos use `pnpm preview` instead of `pnpm dev`: it builds the static app (as deployed)
+and serves it on http://localhost:3000. Pages load in milliseconds; rebuild after code changes.
+Do not run `pnpm build` while `pnpm dev` is running; it breaks the dev server until restarted.
 
 Sign in at `http://localhost:3000/login/?company=harbourline` with a seed user
 (`aisyah` employee, `meiling` HR; Meridian: `kenneth`). Seed passwords are for the local stack only.

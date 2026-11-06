@@ -13,6 +13,7 @@
     "test": "pnpm -r test",
     "format": "prettier --write .",
     "e2e": "playwright test",
+    "preview": "pnpm build && pnpm dlx serve@14.2.4 apps/web/out -l 3000 --no-clipboard",
     "functions": "supabase functions serve"
   },
   "devDependencies": {
