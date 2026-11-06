@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  Airplane,
   SquaresFour,
   Users,
   CalendarCheck,
@@ -15,6 +16,7 @@ import { cn } from '@/lib/cn';
 
 const NAV: Array<{ href: string; label: string; Icon: PhosphorIcon; ready: boolean }> = [
   { href: '/hr/dashboard/', label: 'Dashboard', Icon: SquaresFour, ready: true },
+  { href: '/hr/leave/', label: 'Leave', Icon: Airplane, ready: true },
   { href: '/hr/employees/', label: 'Employees', Icon: Users, ready: false },
   { href: '/hr/attendance/', label: 'Attendance', Icon: CalendarCheck, ready: false },
   { href: '/hr/offices/', label: 'Offices and rules', Icon: Buildings, ready: false },
@@ -68,7 +70,25 @@ export function WebShell({ companyName, children }: { companyName: string; child
         </nav>
         <p className="mt-auto text-xs text-muted">Powered by {PRODUCT_NAME}</p>
       </aside>
-      <main className="px-4 py-6 lg:px-8">{children}</main>
+      <main className="px-4 py-6 lg:px-8">
+        {/* Narrow screens: the sidebar is hidden, so ready sections are listed here. Full HR mobile layout is task 2.7. */}
+        <nav aria-label="HR sections" className="mb-5 flex gap-2 overflow-x-auto lg:hidden">
+          {NAV.filter((n) => n.ready).map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              aria-current={pathname.startsWith(href.slice(0, -1)) ? 'page' : undefined}
+              className={cn(
+                'flex min-h-11 shrink-0 items-center rounded-full border px-4 text-sm font-semibold',
+                pathname.startsWith(href.slice(0, -1)) ? 'border-fg bg-solid text-on-solid' : 'border-line-strong bg-surface',
+              )}
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
+        {children}
+      </main>
     </div>
   );
 }

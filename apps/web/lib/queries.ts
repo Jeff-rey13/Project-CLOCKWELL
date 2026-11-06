@@ -174,6 +174,100 @@ export function useClaimsPending() {
   });
 }
 
+export interface LeaveType {
+  id: string;
+  code: string;
+  name: string;
+  requires_attachment: boolean;
+}
+
+export function useLeaveTypes() {
+  const { client, profile } = useSession();
+  return useQuery({
+    queryKey: queryKeys.leaveTypes(profile?.company_id ?? ''),
+    enabled: !!profile,
+    queryFn: async () => {
+      const { data, error } = await client
+        .from('leave_types')
+        .select('id, code, name, requires_attachment')
+        .order('name');
+      if (error) throw new Error('load failed');
+      return (data ?? []) as LeaveType[];
+    },
+  });
+}
+
+export function useHolidays() {
+  const { client, profile } = useSession();
+  return useQuery({
+    queryKey: queryKeys.holidays(profile?.company_id ?? ''),
+    enabled: !!profile,
+    queryFn: async () => {
+      const { data, error } = await client.from('holidays').select('date, name').order('date');
+      if (error) throw new Error('load failed');
+      return (data ?? []) as Array<{ date: string; name: string }>;
+    },
+  });
+}
+
+export interface LeaveRequestRow {
+  id: string;
+  user_id: string;
+  start_date: string;
+  end_date: string;
+  half_day_end: boolean;
+  days: number;
+  reason: string | null;
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  decision_note: string | null;
+  created_at: string;
+  leave_types: { name: string } | null;
+  profiles?: { full_name: string; employee_code: string } | null;
+}
+
+const LEAVE_COLUMNS =
+  'id, user_id, start_date, end_date, half_day_end, days, reason, status, decision_note, created_at, leave_types(name)';
+
+export function useMyLeave() {
+  const { client, profile } = useSession();
+  return useQuery({
+    queryKey: queryKeys.myLeave(profile?.user_id ?? ''),
+    enabled: !!profile,
+    queryFn: async () => {
+      const { data, error } = await client
+        .from('leave_requests')
+        .select(LEAVE_COLUMNS)
+        .eq('user_id', profile!.user_id)
+        .order('start_date', { ascending: false })
+        .limit(100);
+      if (error) throw new Error('load failed');
+      return ((data ?? []) as unknown as LeaveRequestRow[]).map((r) => ({ ...r, days: Number(r.days) }));
+    },
+  });
+}
+
+/** HR: every leave request in the company, newest first, with the requester's name. */
+export function useCompanyLeave() {
+  const { client, profile } = useSession();
+  return useQuery({
+    queryKey: queryKeys.hrLeave(profile?.company_id ?? ''),
+    enabled: profile?.app_role === 'hr',
+    queryFn: async () => {
+      const [requests, people] = await Promise.all([
+        client.from('leave_requests').select(LEAVE_COLUMNS).order('created_at', { ascending: false }).limit(200),
+        client.from('profiles').select('user_id, full_name, employee_code'),
+      ]);
+      if (requests.error || people.error) throw new Error('load failed');
+      const byId = new Map((people.data ?? []).map((p) => [p.user_id as string, p]));
+      return ((requests.data ?? []) as unknown as LeaveRequestRow[]).map((r) => ({
+        ...r,
+        days: Number(r.days),
+        profiles: (byId.get(r.user_id) as { full_name: string; employee_code: string } | undefined) ?? null,
+      }));
+    },
+  });
+}
+
 /** Today's date (yyyy-mm-dd) and time (HH:MM) in a time zone. */
 export function localDate(d: Date, timeZone: string): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone }).format(d);

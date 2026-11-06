@@ -435,3 +435,15 @@ import_map = "./functions/deno.json"
 verify_jwt = false
 import_map = "./functions/deno.json"
 
+[functions.request-leave]
+verify_jwt = false
+import_map = "./functions/deno.json"
+
+[functions.cancel-leave]
+verify_jwt = false
+import_map = "./functions/deno.json"
+
+[functions.decide-leave]
+verify_jwt = false
+import_map = "./functions/deno.json"
+

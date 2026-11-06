@@ -47,7 +47,8 @@ select is(
 select pg_temp.act_as('20000000-0000-0000-0000-000000000001');
 select is((select count(*)::int from public.leave_balances), 3, 'employee reads only own balances');
 select is((select count(*)::int from public.leave_types), 3, 'employee reads own company leave types');
-select is((select count(*)::int from public.leave_requests), 0, 'employee sees no leave requests of others');
+select is((select count(*)::int from public.leave_requests where user_id <> '20000000-0000-0000-0000-000000000001'),
+  0, 'employee sees no leave requests of others');
 select is((select count(*)::int from public.medical_claims), 1, 'employee reads only own claims');
 select is((select count(*)::int from public.holidays), 2, 'employee reads own company holidays');
 select is((select count(*)::int from public.claim_policies), 1, 'employee reads own company claim policy');
