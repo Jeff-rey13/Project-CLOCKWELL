@@ -12,9 +12,13 @@ export async function callFunction<T>(
   body: unknown,
 ): Promise<ApiResult<T>> {
   try {
+    const headers: Record<string, string> = { 'x-app-version': APP_VERSION };
+    // Send the user's session token explicitly; without it the client may send the project key.
+    const { data: auth } = await client.auth.getSession();
+    if (auth.session) headers.Authorization = `Bearer ${auth.session.access_token}`;
     const { data, error } = await client.functions.invoke<ApiResult<T>>(name, {
       body: body as Record<string, unknown>,
-      headers: { 'x-app-version': APP_VERSION },
+      headers,
     });
     let result: ApiResult<T> | null = data ?? null;
     if (error instanceof FunctionsHttpError) {
