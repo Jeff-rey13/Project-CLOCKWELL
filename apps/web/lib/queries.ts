@@ -268,6 +268,101 @@ export function useCompanyLeave() {
   });
 }
 
+export interface ClaimRow {
+  id: string;
+  user_id: string;
+  clinic: string;
+  visit_date: string;
+  amount: number;
+  currency: string;
+  receipt_paths: string[];
+  status: 'pending' | 'approved' | 'rejected';
+  decision_note: string | null;
+  created_at: string;
+  profiles?: { full_name: string; employee_code: string } | null;
+}
+
+const CLAIM_COLUMNS = 'id, user_id, clinic, visit_date, amount, currency, receipt_paths, status, decision_note, created_at';
+
+export function useMyClaims() {
+  const { client, profile } = useSession();
+  return useQuery({
+    queryKey: queryKeys.myClaims(profile?.user_id ?? ''),
+    enabled: !!profile,
+    queryFn: async () => {
+      const { data, error } = await client
+        .from('medical_claims')
+        .select(CLAIM_COLUMNS)
+        .eq('user_id', profile!.user_id)
+        .order('visit_date', { ascending: false })
+        .limit(100);
+      if (error) throw new Error('load failed');
+      return ((data ?? []) as ClaimRow[]).map((c) => ({ ...c, amount: Number(c.amount) }));
+    },
+  });
+}
+
+export function useClaimPolicy(year: number) {
+  const { client, profile } = useSession();
+  return useQuery({
+    queryKey: ['claim-policy', profile?.company_id ?? '', year],
+    enabled: !!profile,
+    queryFn: async () => {
+      const { data, error } = await client
+        .from('claim_policies')
+        .select('annual_limit, per_claim_limit')
+        .eq('year', year)
+        .maybeSingle();
+      if (error) throw new Error('load failed');
+      return data
+        ? {
+            annualLimit: Number(data.annual_limit),
+            perClaimLimit: data.per_claim_limit === null ? null : Number(data.per_claim_limit),
+          }
+        : null;
+    },
+  });
+}
+
+/** Names for HR lists, keyed by user id. */
+export function usePeopleNames() {
+  const { client, profile } = useSession();
+  return useQuery({
+    queryKey: ['people-names', profile?.company_id ?? ''],
+    enabled: profile?.app_role === 'hr',
+    queryFn: async () => {
+      const { data, error } = await client.from('profiles').select('user_id, full_name, employee_code');
+      if (error) throw new Error('load failed');
+      return new Map((data ?? []).map((p) => [p.user_id as string, p as { full_name: string; employee_code: string }]));
+    },
+  });
+}
+
+export function useCompanyClaims() {
+  const { client, profile } = useSession();
+  const people = usePeopleNames();
+  return useQuery({
+    queryKey: ['hr-claims', profile?.company_id ?? ''],
+    enabled: profile?.app_role === 'hr' && !!people.data,
+    queryFn: async () => {
+      const { data, error } = await client
+        .from('medical_claims')
+        .select(CLAIM_COLUMNS)
+        .order('created_at', { ascending: false })
+        .limit(200);
+      if (error) throw new Error('load failed');
+      return ((data ?? []) as ClaimRow[]).map((c) => ({
+        ...c,
+        amount: Number(c.amount),
+        profiles: people.data?.get(c.user_id) ?? null,
+      }));
+    },
+  });
+}
+
+export const money = (amount: number, currency = 'SGD') =>
+  `${currency} ${amount.toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 /** Today's date (yyyy-mm-dd) and time (HH:MM) in a time zone. */
 export function localDate(d: Date, timeZone: string): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone }).format(d);

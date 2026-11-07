@@ -11,7 +11,8 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ListSkeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
 import { callFunction } from '@/lib/api';
-import { localDate, queryKeys, useMyLeave } from '@/lib/queries';
+import { localDate, money, queryKeys, useMyClaims, useMyLeave } from '@/lib/queries';
+import { DecisionStatus } from '@/components/DecisionStatus';
 import { useSession } from '@/lib/session';
 
 export default function RequestsPage() {
@@ -94,7 +95,42 @@ export default function RequestsPage() {
         </ul>
       )}
 
-      <p className="mt-6 text-sm text-muted">Medical claims and time fixes will appear here in the next release.</p>
+      <div className="mt-8 mb-2 flex items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold text-muted">Medical claims</h2>
+        <Link href="/claims/new/" className="text-sm font-medium underline underline-offset-4">
+          New claim
+        </Link>
+      </div>
+      <ClaimsList />
     </>
+  );
+}
+
+const claimDate = new Intl.DateTimeFormat('en-SG', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+
+function ClaimsList() {
+  const claims = useMyClaims();
+  if (claims.isLoading) return <ListSkeleton rows={2} />;
+  if (claims.isError) return <EmptyState title="Could not load your claims" body="Check your connection and try again." />;
+  if ((claims.data ?? []).length === 0) {
+    return <EmptyState title="No claims yet" body="Medical claims you send will show here with their status." />;
+  }
+  return (
+    <ul className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
+      {(claims.data ?? []).map((c) => (
+        <li key={c.id} className="flex flex-col gap-1 px-4 py-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold">{money(c.amount, c.currency)}</p>
+              <p className="text-sm text-muted">
+                {c.clinic}, {claimDate.format(new Date(`${c.visit_date}T00:00:00Z`))}
+              </p>
+            </div>
+            <DecisionStatus status={c.status} />
+          </div>
+          {c.decision_note ? <p className="text-sm">Note from HR: {c.decision_note}</p> : null}
+        </li>
+      ))}
+    </ul>
   );
 }

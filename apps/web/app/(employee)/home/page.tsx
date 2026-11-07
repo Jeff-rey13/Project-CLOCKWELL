@@ -120,13 +120,12 @@ export default function HomePage() {
         >
           <Airplane size={18} aria-hidden /> Apply leave
         </Link>
-        <span
-          aria-disabled
-          title="Medical claims are coming in the next release"
-          className="flex min-h-12 items-center justify-center gap-2 rounded-full border border-dashed border-line-strong text-sm font-semibold text-muted"
+        <Link
+          href="/claims/new/"
+          className="flex min-h-12 items-center justify-center gap-2 rounded-full border border-line-strong bg-surface text-sm font-semibold"
         >
-          <FirstAidKit size={18} aria-hidden /> Medical claim (soon)
-        </span>
+          <FirstAidKit size={18} aria-hidden /> Medical claim
+        </Link>
       </div>
 
       <section aria-labelledby="recent">

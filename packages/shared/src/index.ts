@@ -7,3 +7,4 @@ export * from './clock-rules.ts';
 export * from './schemas/clock.ts';
 export * from './schemas/auth.ts';
 export * from './schemas/leave.ts';
+export * from './schemas/claims.ts';

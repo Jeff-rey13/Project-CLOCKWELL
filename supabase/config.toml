@@ -447,3 +447,11 @@ import_map = "./functions/deno.json"
 verify_jwt = false
 import_map = "./functions/deno.json"
 
+[functions.submit-claim]
+verify_jwt = false
+import_map = "./functions/deno.json"
+
+[functions.decide-claim]
+verify_jwt = false
+import_map = "./functions/deno.json"
+

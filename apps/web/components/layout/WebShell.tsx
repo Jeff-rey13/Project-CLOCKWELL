@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Airplane,
+  FirstAidKit,
   SquaresFour,
   Users,
   CalendarCheck,
@@ -17,6 +18,7 @@ import { cn } from '@/lib/cn';
 const NAV: Array<{ href: string; label: string; Icon: PhosphorIcon; ready: boolean }> = [
   { href: '/hr/dashboard/', label: 'Dashboard', Icon: SquaresFour, ready: true },
   { href: '/hr/leave/', label: 'Leave', Icon: Airplane, ready: true },
+  { href: '/hr/claims/', label: 'Claims', Icon: FirstAidKit, ready: true },
   { href: '/hr/employees/', label: 'Employees', Icon: Users, ready: false },
   { href: '/hr/attendance/', label: 'Attendance', Icon: CalendarCheck, ready: false },
   { href: '/hr/offices/', label: 'Offices and rules', Icon: Buildings, ready: false },
