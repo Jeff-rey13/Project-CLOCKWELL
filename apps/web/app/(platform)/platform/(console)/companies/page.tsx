@@ -43,7 +43,7 @@ export default function CompaniesPage() {
       <section aria-label="Totals" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Kpi label="Companies" value={companies.isLoading ? null : list.length} />
         <Kpi label="Active" value={companies.isLoading ? null : list.filter((c) => c.status === 'active').length} />
-        <Kpi label="Seats in use" value={companies.isLoading ? null : list.reduce((s, c) => s + c.seats_used, 0)} />
+        <Kpi label="Suspended" value={companies.isLoading ? null : list.filter((c) => c.status === 'suspended').length} />
         <Kpi label="Need attention" value={companies.isLoading ? null : attention.length} danger />
       </section>
 
@@ -77,7 +77,7 @@ export default function CompaniesPage() {
                 <th className="px-4 py-3 font-medium">Company</th>
                 <th className="px-4 py-3 font-medium">Address</th>
                 <th className="px-4 py-3 font-medium">Plan</th>
-                <th className="px-4 py-3 font-medium">Seats</th>
+                <th className="px-4 py-3 font-medium">Seat limit</th>
                 <th className="px-4 py-3 font-medium">Release track</th>
                 <th className="px-4 py-3 font-medium">Status</th>
               </tr>
@@ -92,9 +92,7 @@ export default function CompaniesPage() {
                   </td>
                   <td className="px-4 py-3 font-mono text-xs">{companyAddress(c.slug)}</td>
                   <td className="px-4 py-3 capitalize">{c.plan}</td>
-                  <td className="px-4 py-3">
-                    {c.seats_used} / {c.seat_limit}
-                  </td>
+                  <td className="px-4 py-3">{c.seat_limit}</td>
                   <td className="px-4 py-3 capitalize">{c.release_track}</td>
                   <td className="px-4 py-3">
                     <Chip tone={statusTone(c.status)}>{c.status.replace('_', ' ')}</Chip>

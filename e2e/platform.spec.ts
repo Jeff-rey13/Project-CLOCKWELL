@@ -33,7 +33,9 @@ test('platform admin creates a company, changes its plan, and deletion needs a s
   await ops.getByRole('link', { name }).first().click();
   await ops.waitForURL('**/platform/company/**');
   await expect(ops.getByRole('heading', { name })).toBeVisible();
-  await expect(ops.getByText('Invited').locator('..').getByText('1')).toBeVisible();
+  // Company-level facts only: no headcount or activity of the company's people.
+  await expect(ops.getByText('Active employees')).toHaveCount(0);
+  await expect(ops.getByText(/in use/)).toHaveCount(0);
   await ops.getByLabel('Seat limit').fill('80');
   await ops.getByRole('switch', { name: 'Payroll export' }).click();
   await ops.getByRole('button', { name: 'Save plan' }).click();

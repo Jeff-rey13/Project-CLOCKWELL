@@ -9,7 +9,6 @@ export interface PlatformCompany {
   slug: string;
   plan: 'starter' | 'business' | 'enterprise';
   seat_limit: number;
-  seats_used: number;
   release_track: 'pilot' | 'stable';
   status: 'onboarding' | 'trial' | 'active' | 'suspended' | 'pending_deletion';
   hosting: 'shared' | 'dedicated';
@@ -21,7 +20,7 @@ export interface PlatformCompany {
   support_until: string | null;
 }
 
-/** All companies with seat counts. Counts only; no personal data. */
+/** All companies: company-level facts only, nothing about their people. */
 export function usePlatformCompanies() {
   const { client, platformRole } = useSession();
   return useQuery({
@@ -30,7 +29,7 @@ export function usePlatformCompanies() {
     queryFn: async () => {
       const { data, error } = await client.rpc('platform_companies');
       if (error) throw new Error('load failed');
-      return ((data ?? []) as PlatformCompany[]).map((c) => ({ ...c, seats_used: Number(c.seats_used) }));
+      return (data ?? []) as PlatformCompany[];
     },
   });
 }
@@ -40,7 +39,6 @@ export function attentionReason(c: PlatformCompany): string | null {
   if (c.status === 'pending_deletion') return 'Scheduled for deletion';
   if (c.deletion_requested_by && !c.deletion_approved_by) return 'Deletion waiting for a second approver';
   if (c.status === 'suspended') return 'Suspended';
-  if (c.seat_limit > 0 && c.seats_used / c.seat_limit >= 0.9) return `Seats nearly full (${c.seats_used} of ${c.seat_limit})`;
   if (c.status === 'onboarding') return 'Still onboarding';
   return null;
 }

@@ -67,7 +67,7 @@ Locally these are off or open so seed users can sign in without two-step; see `s
 ## Platform console (vendor team)
 
 Sign in at `platform.<domain>/platform/login` (locally `http://localhost:3000/platform/login/`) with email and
-password. Locally: `ops@vendor.test` (owner) and `ops2@vendor.test` (engineer); deleting a company needs both.
+password. Locally:  Passw0rd!local `ops@vendor.test` (owner) and `ops2@vendor.test` (engineer); deleting a company needs both.
 
 Add a team member to a project (once per person, by an owner):
 

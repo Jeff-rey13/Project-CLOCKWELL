@@ -60,7 +60,6 @@ function CompanyDetail() {
       <div className="grid gap-4 lg:grid-cols-2">
         <PlanCard key={`${company.id}-${company.plan}-${company.seat_limit}-${company.release_track}`} company={company} />
         <div className="flex flex-col gap-4">
-          <Usage company={company} />
           <Support company={company} />
         </div>
       </div>
@@ -136,7 +135,7 @@ function PlanCard({ company }: { company: PlatformCompany }) {
           disabled={!canEdit}
           value={seats}
           onChange={(e) => setSeats(e.target.value)}
-          hint={`${company.seats_used} in use`}
+          hint="Enforced inside the company"
         />
       </div>
       <Select
@@ -168,44 +167,6 @@ function PlanCard({ company }: { company: PlatformCompany }) {
       ) : (
         <p className="text-sm text-muted">Support role: read only.</p>
       )}
-    </Card>
-  );
-}
-
-function Usage({ company }: { company: PlatformCompany }) {
-  const { client } = useSession();
-  const usage = useQuery({
-    queryKey: ['platform-usage', company.id],
-    queryFn: async () => {
-      const { data, error } = await client.rpc('platform_company_usage', { p_company: company.id });
-      if (error) throw new Error('load failed');
-      return data as Record<string, number>;
-    },
-  });
-  const rows: Array<[string, string]> = [
-    ['Active employees', 'employees'],
-    ['Invited', 'invited'],
-    ['Offices', 'offices'],
-    ['Clock-ins, last 7 days', 'clock_ins_7d'],
-    ['Leave waiting', 'leave_pending'],
-    ['Claims waiting', 'claims_pending'],
-  ];
-  return (
-    <Card>
-      <CardTitle className="mb-3">Usage</CardTitle>
-      {usage.isLoading ? (
-        <ListSkeleton rows={2} />
-      ) : (
-        <dl className="grid grid-cols-2 gap-y-1.5 text-sm">
-          {rows.map(([label, key]) => (
-            <div key={key} className="contents">
-              <dt className="text-muted">{label}</dt>
-              <dd className="text-right font-semibold">{usage.data?.[key] ?? '-'}</dd>
-            </div>
-          ))}
-        </dl>
-      )}
-      <p className="mt-3 text-xs text-muted">Counts only. Staff data needs a support grant from the company.</p>
     </Card>
   );
 }
