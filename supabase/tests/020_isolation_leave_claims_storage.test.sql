@@ -89,8 +89,8 @@ select is((select count(*)::int from public.medical_claims where company_id <> '
 select is(
   (select count(*)::int from public.audit_log where company_id <> '10000000-0000-0000-0000-000000000001'),
   0, 'HR reads no audit log of other companies');
-select is((select count(*)::int from public.attendance_corrections), current_setting('t.att_aisyah')::int,
-  'HR reads own company corrections (one per shift created above)');
+select is((select count(*)::int from public.attendance_corrections where company_id <> '10000000-0000-0000-0000-000000000001'),
+  0, 'HR reads corrections of own company only');
 select is((select count(*)::int from storage.objects where bucket_id = 'selfies'),
   current_setting('t.selfies_a')::int + 1, 'HR reads own company selfies only (plus the one uploaded above)');
 

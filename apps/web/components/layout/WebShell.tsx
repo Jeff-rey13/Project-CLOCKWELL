@@ -20,7 +20,7 @@ const NAV: Array<{ href: string; label: string; Icon: PhosphorIcon; ready: boole
   { href: '/hr/leave/', label: 'Leave', Icon: Airplane, ready: true },
   { href: '/hr/claims/', label: 'Claims', Icon: FirstAidKit, ready: true },
   { href: '/hr/employees/', label: 'Employees', Icon: Users, ready: true },
-  { href: '/hr/attendance/', label: 'Attendance', Icon: CalendarCheck, ready: false },
+  { href: '/hr/attendance/', label: 'Attendance', Icon: CalendarCheck, ready: true },
   { href: '/hr/offices/', label: 'Offices and rules', Icon: Buildings, ready: false },
   { href: '/hr/settings/', label: 'Company settings', Icon: GearSix, ready: false },
 ];

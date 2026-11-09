@@ -13,7 +13,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ListSkeleton, Skeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
 import { callFunction } from '@/lib/api';
-import { localTime, money, useCompanyClaims, useCompanyLeave, usePeopleNames } from '@/lib/queries';
+import { localTime, money, useCompanyClaims, useCompanyCorrections, useCompanyLeave, usePeopleNames } from '@/lib/queries';
 import { useSession } from '@/lib/session';
 
 interface Dashboard {
@@ -33,7 +33,7 @@ interface Waiting {
   ownerId: string;
   who: string;
   what: string;
-  fn: 'decide-leave' | 'decide-claim';
+  fn: 'decide-leave' | 'decide-claim' | 'correct-attendance';
   body: (approve: boolean) => Record<string, unknown>;
 }
 
@@ -44,6 +44,7 @@ export default function HrDashboardPage() {
   const people = usePeopleNames();
   const leave = useCompanyLeave();
   const claims = useCompanyClaims();
+  const fixes = useCompanyCorrections();
 
   const dashboard = useQuery({
     queryKey: ['hr-dashboard', companyId],
@@ -123,6 +124,16 @@ export default function HrDashboardPage() {
         fn: 'decide-claim' as const,
         body: (approve: boolean) => ({ claim_id: c.id, approve, note: '' }),
       })),
+    ...(fixes.data ?? [])
+      .filter((f) => f.status === 'pending')
+      .map((f) => ({
+        key: `f-${f.id}`,
+        ownerId: f.requested_by,
+        who: people.data?.get(f.attendance?.user_id ?? f.requested_by)?.full_name ?? 'Employee',
+        what: `Time fix, ${f.field === 'clock_in' ? 'clock-in' : 'clock-out'} ${f.attendance?.work_date ?? ''} to ${localTime(f.corrected_at, 'Asia/Singapore')}`,
+        fn: 'correct-attendance' as const,
+        body: (approve: boolean) => ({ correction_id: f.id, approve }),
+      })),
   ];
 
   const d = dashboard.data;
@@ -161,7 +172,7 @@ export default function HrDashboardPage() {
           {leave.isLoading || claims.isLoading ? (
             <ListSkeleton rows={3} />
           ) : waiting.length === 0 ? (
-            <EmptyState title="All caught up" body="New leave and claims will show here." />
+            <EmptyState title="All caught up" body="New leave, claims and time fixes will show here." />
           ) : (
             <ul className="divide-y divide-line">
               {waiting.slice(0, 8).map((w) => (
@@ -232,6 +243,7 @@ function WaitingRow({ item }: { item: Waiting }) {
       queryClient.invalidateQueries({ queryKey: ['hr-leave'] }),
       queryClient.invalidateQueries({ queryKey: ['hr-claims'] }),
       queryClient.invalidateQueries({ queryKey: ['hr-dashboard'] }),
+      queryClient.invalidateQueries({ queryKey: ['hr-corrections'] }),
     ]);
     toast(approve ? 'Approved.' : 'Rejected.');
   };

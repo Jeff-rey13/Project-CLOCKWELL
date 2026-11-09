@@ -467,3 +467,11 @@ import_map = "./functions/deno.json"
 verify_jwt = false
 import_map = "./functions/deno.json"
 
+[functions.request-correction]
+verify_jwt = false
+import_map = "./functions/deno.json"
+
+[functions.correct-attendance]
+verify_jwt = false
+import_map = "./functions/deno.json"
+
