@@ -507,3 +507,7 @@ import_map = "./functions/deno.json"
 verify_jwt = false
 import_map = "./functions/deno.json"
 
+[functions.platform-company]
+verify_jwt = false
+import_map = "./functions/deno.json"
+

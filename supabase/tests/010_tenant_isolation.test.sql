@@ -35,6 +35,7 @@ end $$;
 select set_config('t.att_aisyah', (select count(*) from public.attendance
   where user_id = '20000000-0000-0000-0000-000000000001')::text, true);
 select set_config('t.people_a', (select count(*) from public.profiles where company_id = '10000000-0000-0000-0000-000000000001')::text, true);
+select set_config('t.companies', (select count(*) from public.companies)::text, true);
 select set_config('t.att_a', (select count(*) from public.attendance
   where company_id = '10000000-0000-0000-0000-000000000001')::text, true);
 
@@ -96,7 +97,7 @@ select is((select count(*)::int from public.companies), 1, 'employee of B reads 
 select pg_temp.act_as('20000000-0000-0000-0000-000000000004');
 select is((select count(*)::int from public.profiles), 0, 'platform reads no profiles without a grant');
 select is((select count(*)::int from public.attendance), 0, 'platform reads no attendance without a grant');
-select is((select count(*)::int from public.companies), 2, 'platform reads company rows');
+select is((select count(*)::int from public.companies), current_setting('t.companies')::int, 'platform reads every company row');
 select is(
   private.has_support_grant('10000000-0000-0000-0000-000000000001'),
   false, 'no active support grant for A');

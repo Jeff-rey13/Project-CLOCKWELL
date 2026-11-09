@@ -95,7 +95,13 @@ export default function HrDashboardPage() {
           void queryClient.invalidateQueries({ queryKey: ['hr-dashboard', companyId] });
           void queryClient.invalidateQueries({ queryKey: ['hr-latest', companyId] });
         })
-        .subscribe();
+        .subscribe((state) => {
+          // Catch anything that happened while the live connection was joining.
+          if (state === 'SUBSCRIBED') {
+            void queryClient.invalidateQueries({ queryKey: ['hr-dashboard', companyId] });
+            void queryClient.invalidateQueries({ queryKey: ['hr-latest', companyId] });
+          }
+        });
     });
     return () => {
       cancelled = true;

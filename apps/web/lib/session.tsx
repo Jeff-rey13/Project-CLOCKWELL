@@ -24,12 +24,18 @@ export interface SessionState {
   slug: string;
   companyName: string;
   profile: Profile | null;
+  /** Platform (vendor) role when the signed-in user is on the vendor team; they have no company profile. */
+  platformRole: 'owner' | 'engineer' | 'support' | null;
   reloadProfile: () => Promise<void>;
 }
 
 const SessionContext = createContext<SessionState | null>(null);
 
 function initialTarget() {
+  // The platform console keeps its own session, apart from any company.
+  if (typeof window !== 'undefined' && window.location.pathname.startsWith('/platform')) {
+    return { slug: 'platform', company: null };
+  }
   const remembered = typeof window !== 'undefined' ? rememberedCompany() : null;
   const slug = remembered?.slug ?? currentCompanySlug();
   return { slug, company: remembered?.company ?? null };
@@ -42,7 +48,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [companyName, setCompanyName] = useState<string>(company?.name ?? slug);
 
   useEffect(() => {
-    if (company) return;
+    if (company || slug === 'platform') return;
     let active = true;
     resolveCompany(slug)
       .then((c) => {
@@ -54,6 +60,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     };
   }, [company, slug]);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [platformRole, setPlatformRole] = useState<SessionState['platformRole']>(null);
 
   const loadProfile = async (userId: string) => {
     const { data } = await client
@@ -62,7 +69,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       .eq('user_id', userId)
       .maybeSingle();
     setProfile((data as Profile | null) ?? null);
-    setStatus(data ? 'signed_in' : 'signed_out');
+    if (data) {
+      setStatus('signed_in');
+      return;
+    }
+    // No company profile: a vendor team member?
+    const { data: role } = await client.rpc('my_platform_role');
+    setPlatformRole((role as SessionState['platformRole']) ?? null);
+    setStatus(role ? 'signed_in' : 'signed_out');
   };
 
   useEffect(() => {
@@ -90,8 +104,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     status,
     client,
     slug,
-    companyName,
+    companyName: slug === 'platform' ? 'Platform' : companyName,
     profile,
+    platformRole,
     reloadProfile: async () => {
       const { data } = await client.auth.getSession();
       if (data.session) await loadProfile(data.session.user.id);

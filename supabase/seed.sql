@@ -42,7 +42,8 @@ from (values
   ('20000000-0000-0000-0000-000000000001'::uuid, 'aisyah@harbourline.test'),
   ('20000000-0000-0000-0000-000000000002'::uuid, 'meiling@harbourline.test'),
   ('20000000-0000-0000-0000-000000000003'::uuid, 'kenneth@meridian.test'),
-  ('20000000-0000-0000-0000-000000000004'::uuid, 'ops@vendor.test')
+  ('20000000-0000-0000-0000-000000000004'::uuid, 'ops@vendor.test'),
+  ('20000000-0000-0000-0000-000000000005'::uuid, 'ops2@vendor.test')
 ) as u(id, email);
 
 insert into auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
@@ -62,7 +63,8 @@ insert into public.employee_rules (user_id, company_id) values
   ('20000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000002');
 
 insert into public.platform_admins (user_id, role) values
-  ('20000000-0000-0000-0000-000000000004', 'owner');
+  ('20000000-0000-0000-0000-000000000004', 'owner'),
+  ('20000000-0000-0000-0000-000000000005', 'engineer');
 
 -- One closed shift each for an employee of each company.
 insert into public.attendance (

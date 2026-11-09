@@ -17,6 +17,8 @@ test('HR dashboard shows real figures and a clock-in arrives live', async ({ bro
   await expect(hr.getByText('Preview build')).toHaveCount(0);
   const inNow = hr.getByText('In office now').locator('..').locator('p').first();
   await expect(inNow).toHaveText(/^\d+$/);
+  // Let the figures settle after the live connection joins.
+  await hr.waitForTimeout(1500);
   const before = Number(await inNow.textContent());
 
   await employee.getByRole('link', { name: 'Clock in', exact: true }).click();

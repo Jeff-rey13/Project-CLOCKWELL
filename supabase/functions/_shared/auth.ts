@@ -34,6 +34,20 @@ export async function requireCaller(req: Request): Promise<Caller> {
   };
 }
 
+/** Caller must be a platform admin with one of the given roles (owner, engineer, support). */
+export async function requirePlatform(
+  req: Request,
+  roles: ReadonlyArray<'owner' | 'engineer' | 'support'>,
+): Promise<Caller & { platformRole: 'owner' | 'engineer' | 'support' }> {
+  const caller = await requireCaller(req);
+  if (!caller.isPlatform) throw new AppError('FORBIDDEN', 'not platform');
+  const { data } = await admin().from('platform_admins').select('role').eq('user_id', caller.userId).maybeSingle();
+  const role = data?.role as 'owner' | 'engineer' | 'support' | undefined;
+  if (!role || !roles.includes(role)) throw new AppError('FORBIDDEN', 'platform role');
+  if (Deno.env.get('REQUIRE_HR_MFA') === 'true' && caller.aal !== 'aal2') throw new AppError('MFA_REQUIRED');
+  return { ...caller, platformRole: role };
+}
+
 /** Caller must belong to a company and have one of the given roles. */
 export async function requireCompanyRole(
   req: Request,

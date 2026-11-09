@@ -64,6 +64,20 @@ pnpm e2e                                # needs the local stack, functions and d
 
 Locally these are off or open so seed users can sign in without two-step; see `supabase/config.toml`.
 
+## Platform console (vendor team)
+
+Sign in at `platform.<domain>/platform/login` (locally `http://localhost:3000/platform/login/`) with email and
+password. Locally: `ops@vendor.test` (owner) and `ops2@vendor.test` (engineer); deleting a company needs both.
+
+Add a team member to a project (once per person, by an owner):
+
+1. Supabase dashboard of the project, Authentication, Users, Invite user: their email.
+2. SQL editor: `insert into public.platform_admins (user_id, role) select id, 'owner' from auth.users where email = '<their email>';`
+   Roles: `owner` and `engineer` can change companies; `support` can only read.
+3. They accept the invite, set a password, then set up two-step sign-in on first sign-in.
+
+Platform users see company names and counts only. Staff data needs a support grant from the company (task 3.2).
+
 ## Local test inbox
 
 Invite emails on the local stack go to Mailpit: `http://127.0.0.1:54324`.
