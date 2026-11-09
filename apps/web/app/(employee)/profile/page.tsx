@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { PRODUCT_NAME } from '@app/shared';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { HomeLocationCard } from '@/components/HomeLocationCard';
 import { useSession } from '@/lib/session';
 
 export default function ProfilePage() {
@@ -44,10 +45,11 @@ export default function ProfilePage() {
           ))}
         </dl>
       </Card>
+      <HomeLocationCard />
       <Card className="mb-4 text-sm">
         <p className="mb-1 font-semibold">Privacy</p>
         <p className="text-muted">
-          Location is read only when you clock in or out. Selfies are deleted after your company&apos;s
+          Location is read only when you clock in or out, or register your home. Selfies are deleted after your company&apos;s
           retention period. No biometric data is stored.
         </p>
       </Card>

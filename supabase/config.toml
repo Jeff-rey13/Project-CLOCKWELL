@@ -475,3 +475,23 @@ import_map = "./functions/deno.json"
 verify_jwt = false
 import_map = "./functions/deno.json"
 
+[functions.save-office]
+verify_jwt = false
+import_map = "./functions/deno.json"
+
+[functions.save-site]
+verify_jwt = false
+import_map = "./functions/deno.json"
+
+[functions.save-employee-rules]
+verify_jwt = false
+import_map = "./functions/deno.json"
+
+[functions.request-home-location]
+verify_jwt = false
+import_map = "./functions/deno.json"
+
+[functions.approve-home-location]
+verify_jwt = false
+import_map = "./functions/deno.json"
+
