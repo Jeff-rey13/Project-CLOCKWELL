@@ -19,7 +19,7 @@ const NAV: Array<{ href: string; label: string; Icon: PhosphorIcon; ready: boole
   { href: '/hr/dashboard/', label: 'Dashboard', Icon: SquaresFour, ready: true },
   { href: '/hr/leave/', label: 'Leave', Icon: Airplane, ready: true },
   { href: '/hr/claims/', label: 'Claims', Icon: FirstAidKit, ready: true },
-  { href: '/hr/employees/', label: 'Employees', Icon: Users, ready: false },
+  { href: '/hr/employees/', label: 'Employees', Icon: Users, ready: true },
   { href: '/hr/attendance/', label: 'Attendance', Icon: CalendarCheck, ready: false },
   { href: '/hr/offices/', label: 'Offices and rules', Icon: Buildings, ready: false },
   { href: '/hr/settings/', label: 'Company settings', Icon: GearSix, ready: false },
@@ -72,7 +72,7 @@ export function WebShell({ companyName, children }: { companyName: string; child
         </nav>
         <p className="mt-auto text-xs text-muted">Powered by {PRODUCT_NAME}</p>
       </aside>
-      <main className="px-4 py-6 lg:px-8">
+      <main className="min-w-0 px-4 py-6 lg:px-8">
         {/* Narrow screens: the sidebar is hidden, so ready sections are listed here. Full HR mobile layout is task 2.7. */}
         <nav aria-label="HR sections" className="mb-5 flex gap-2 overflow-x-auto lg:hidden">
           {NAV.filter((n) => n.ready).map(({ href, label }) => (

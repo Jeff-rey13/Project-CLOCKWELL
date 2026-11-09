@@ -14,6 +14,8 @@ export interface Profile {
   app_role: 'employee' | 'hr';
   office_id: string | null;
   privacy_ack_at: string | null;
+  username: string;
+  status: 'invited' | 'active' | 'offboarded';
 }
 
 export interface SessionState {
@@ -56,7 +58,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const loadProfile = async (userId: string) => {
     const { data } = await client
       .from('profiles')
-      .select('user_id, company_id, full_name, employee_code, department, app_role, office_id, privacy_ack_at')
+      .select('user_id, company_id, full_name, employee_code, department, app_role, office_id, privacy_ack_at, username, status')
       .eq('user_id', userId)
       .maybeSingle();
     setProfile((data as Profile | null) ?? null);

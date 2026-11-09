@@ -23,13 +23,14 @@ reset role;
 
 -- Privacy acknowledgement is stored for the caller only.
 update public.profiles set privacy_ack_at = null where user_id = '20000000-0000-0000-0000-000000000001';
+select set_config('t.unacked', (select count(*) from public.profiles where privacy_ack_at is null)::text, true);
 select set_config('request.jwt.claims', '{"sub":"20000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
 set local role authenticated;
 select isnt(public.acknowledge_privacy(), null, 'employee acknowledges the privacy notice');
 reset role;
 select is(
   (select count(*)::int from public.profiles where privacy_ack_at is null),
-  0, 'acknowledgement saved; no other profile touched');
+  current_setting('t.unacked')::int - 1, 'acknowledgement saved; no other profile touched');
 
 select * from finish();
 rollback;

@@ -34,6 +34,7 @@ end $$;
 -- Ground truth read as the owner, so counts do not depend on rows added during local use.
 select set_config('t.att_aisyah', (select count(*) from public.attendance
   where user_id = '20000000-0000-0000-0000-000000000001')::text, true);
+select set_config('t.people_a', (select count(*) from public.profiles where company_id = '10000000-0000-0000-0000-000000000001')::text, true);
 select set_config('t.att_a', (select count(*) from public.attendance
   where company_id = '10000000-0000-0000-0000-000000000001')::text, true);
 
@@ -68,8 +69,8 @@ select throws_ok(
 
 -- ---------------------------------------------------------------- HR of A (meiling)
 select pg_temp.act_as('20000000-0000-0000-0000-000000000002');
-select is((select count(*)::int from public.profiles), 2, 'HR reads all profiles in own company');
-select is((select count(*)::int from public.employee_rules), 2, 'HR reads all rules in own company');
+select is((select count(*)::int from public.profiles), current_setting('t.people_a')::int, 'HR reads all profiles in own company');
+select is((select count(*)::int from public.employee_rules), current_setting('t.people_a')::int, 'HR reads all rules in own company');
 select is(
   (select count(*)::int from public.attendance), current_setting('t.att_a')::int,
   'HR reads all attendance of own company and nothing else');

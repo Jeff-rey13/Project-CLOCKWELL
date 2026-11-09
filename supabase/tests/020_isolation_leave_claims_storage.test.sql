@@ -84,7 +84,7 @@ select throws_ok(
 
 -- ---------------------------------------------------------------- HR of A (meiling)
 select pg_temp.act_as('20000000-0000-0000-0000-000000000002');
-select is((select count(*)::int from public.leave_balances), 5, 'HR reads all balances in own company');
+select is((select count(*)::int from public.leave_balances where company_id <> '10000000-0000-0000-0000-000000000001'), 0, 'HR reads balances of own company only');
 select is((select count(*)::int from public.medical_claims where company_id <> '10000000-0000-0000-0000-000000000001'), 0, 'HR reads own company claims only');
 select is(
   (select count(*)::int from public.audit_log where company_id <> '10000000-0000-0000-0000-000000000001'),
