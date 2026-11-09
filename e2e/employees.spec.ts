@@ -24,7 +24,7 @@ test('HR onboards an employee, the invite works, then HR offboards them', async 
   const email = `new.starter.${stamp}@harbourline.test`;
   const name = `Nadia Starter${stamp}`;
 
-  const hr = await signedIn(browser, 'meiling');
+  const hr = await signedIn(browser, 'meiling', 'harbourline', { desktop: true });
   await hr.goto('/hr/employees/');
   await expect(hr.getByRole('cell', { name: /Aisyah Rahman/ })).toBeVisible();
   await hr.getByRole('button', { name: 'Onboard' }).click();

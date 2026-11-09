@@ -11,3 +11,4 @@ export * from './schemas/claims.ts';
 export * from './schemas/employees.ts';
 export * from './schemas/corrections.ts';
 export * from './schemas/offices.ts';
+export * from './schemas/settings.ts';

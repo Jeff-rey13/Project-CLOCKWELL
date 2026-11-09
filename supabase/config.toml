@@ -304,8 +304,8 @@ max_enrolled_factors = 10
 
 # Control MFA via App Authenticator (TOTP)
 [auth.mfa.totp]
-enroll_enabled = false
-verify_enabled = false
+enroll_enabled = true
+verify_enabled = true
 
 # Configure MFA via Phone Messaging
 [auth.mfa.phone]
@@ -492,6 +492,18 @@ verify_jwt = false
 import_map = "./functions/deno.json"
 
 [functions.approve-home-location]
+verify_jwt = false
+import_map = "./functions/deno.json"
+
+[functions.save-company-settings]
+verify_jwt = false
+import_map = "./functions/deno.json"
+
+[functions.grant-support-access]
+verify_jwt = false
+import_map = "./functions/deno.json"
+
+[functions.revoke-support-access]
 verify_jwt = false
 import_map = "./functions/deno.json"
 

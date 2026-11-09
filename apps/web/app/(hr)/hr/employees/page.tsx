@@ -18,6 +18,7 @@ import { callFunction } from '@/lib/api';
 import { localDate } from '@/lib/queries';
 import { useEmployees, type Employee } from '@/lib/hr-queries';
 import { useSession } from '@/lib/session';
+import { PersonActions } from '@/components/PersonActions';
 import { cn } from '@/lib/cn';
 
 const joined = new Intl.DateTimeFormat('en-SG', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
@@ -29,6 +30,7 @@ export default function EmployeesPage() {
   const [filter, setFilter] = useState<'active' | 'offboarded'>('active');
   const [panel, setPanel] = useState<{ mode: 'invite' } | { mode: 'edit'; employee: Employee } | null>(null);
   const [offboarding, setOffboarding] = useState<Employee | null>(null);
+  const [actions, setActions] = useState<Employee | null>(null);
 
   const list = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -95,7 +97,40 @@ export default function EmployeesPage() {
           body={filter === 'active' && !search ? 'Onboard your first employee to send them an invite.' : undefined}
         />
       ) : (
-        <Card className="relative w-full min-w-0 overflow-x-auto p-0">
+        <>
+        {/* Phones: one card per person; tap for actions (PRD screen 13). */}
+        <ul className="flex flex-col gap-2 sm:hidden">
+          {list.map((e) => (
+            <li key={e.user_id}>
+              <button
+                type="button"
+                onClick={() => setActions(e)}
+                className="flex w-full items-center justify-between gap-3 rounded-card border border-line bg-surface px-4 py-3 text-left"
+              >
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold">{e.full_name}</span>
+                  <span className="block text-xs text-muted">
+                    {e.employee_code} · {e.department ?? officeName(e.office_id)}
+                  </span>
+                </span>
+                <span className="flex shrink-0 flex-wrap justify-end gap-1">
+                  {e.status === 'invited' ? (
+                    <Chip tone="outline">Invited</Chip>
+                  ) : e.status === 'offboarded' ? (
+                    <Chip tone="outline">Offboarded</Chip>
+                  ) : e.today ? (
+                    <StatusChip status={e.today.status} />
+                  ) : e.onLeave ? (
+                    <Chip tone="outline">On leave</Chip>
+                  ) : (
+                    <span className="text-xs text-muted">Not in</span>
+                  )}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+        <Card className="relative hidden w-full min-w-0 overflow-x-auto p-0 sm:block">
           <table className="w-full min-w-[760px] text-left text-sm">
             <thead className="border-b border-line text-xs text-muted">
               <tr>
@@ -161,6 +196,7 @@ export default function EmployeesPage() {
             </tbody>
           </table>
         </Card>
+        </>
       )}
 
       <Sheet
@@ -178,6 +214,22 @@ export default function EmployeesPage() {
         ) : null}
       </Sheet>
 
+      <Sheet open={actions !== null} title={actions?.full_name ?? ''} onClose={() => setActions(null)}>
+        {actions ? (
+          <PersonActions
+            employee={actions}
+            canOffboard={actions.user_id !== profile?.user_id && actions.status !== 'offboarded'}
+            onEdit={() => {
+              setPanel({ mode: 'edit', employee: actions });
+              setActions(null);
+            }}
+            onOffboard={() => {
+              setOffboarding(actions);
+              setActions(null);
+            }}
+          />
+        ) : null}
+      </Sheet>
       <Sheet open={offboarding !== null} title="Offboard employee" onClose={() => setOffboarding(null)}>
         {offboarding ? <OffboardConfirm employee={offboarding} onDone={() => setOffboarding(null)} /> : null}
       </Sheet>

@@ -141,7 +141,7 @@ export default function HrDashboardPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 hidden justify-end lg:flex">
         <ModeSwitch mode="hr" />
       </div>
       {d ? (

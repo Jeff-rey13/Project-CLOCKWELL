@@ -3,9 +3,15 @@ import { expect, test, type Browser, type Page } from '@playwright/test';
 export const PASSWORD = 'Passw0rd!local'; // local seed only
 
 /** Each user gets their own browser context, like two different phones. */
-export async function signedIn(browser: Browser, username: string, company = 'harbourline'): Promise<Page> {
+export async function signedIn(
+  browser: Browser,
+  username: string,
+  company = 'harbourline',
+  opts: { desktop?: boolean } = {},
+): Promise<Page> {
   const context = await browser.newContext({
     baseURL: test.info().project.use.baseURL,
+    ...(opts.desktop ? { viewport: { width: 1280, height: 800 }, isMobile: false, hasTouch: false } : {}),
     geolocation: { latitude: 1.2795, longitude: 103.8506, accuracy: 15 },
     permissions: ['geolocation', 'camera'],
   });

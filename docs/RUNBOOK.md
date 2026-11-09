@@ -50,6 +50,24 @@ pnpm e2e                                # needs the local stack, functions and d
   (enabled in `supabase/config.toml` under `[auth.hook.custom_access_token]`; enable the same hook in
   each remote project's Auth settings).
 
+## Settings to set on every deployed project
+
+| Where | Setting | Value |
+|---|---|---|
+| Web (Vercel env) | `NEXT_PUBLIC_REQUIRE_HR_MFA` | `true` |
+| Function secrets | `REQUIRE_HR_MFA` | `true` |
+| Function secrets | `SITE_URL` | the app address, used in invite emails |
+| Supabase Auth | Custom Access Token Hook | `public.custom_access_token_hook` |
+| Supabase Auth | Sign-ups | off (invite only) |
+| Supabase Auth | MFA, TOTP | enroll and verify on |
+| Supabase Auth | Redirect URLs | the app address(es), with `/**` |
+
+Locally these are off or open so seed users can sign in without two-step; see `supabase/config.toml`.
+
+## Local test inbox
+
+Invite emails on the local stack go to Mailpit: `http://127.0.0.1:54324`.
+
 ## Deploy, rollback, restore
 
 Written in Phase 3 (task 3.8). Remote deploys run only from GitHub Actions started by the owner.
