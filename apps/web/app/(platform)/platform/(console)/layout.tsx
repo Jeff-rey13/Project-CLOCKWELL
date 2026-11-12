@@ -49,16 +49,25 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
           <div className="flex items-center gap-4">
             <span className="font-bold">{PRODUCT_NAME} platform</span>
             <nav aria-label="Platform" className="flex gap-1">
-              <Link
-                href="/platform/companies/"
-                aria-current={pathname.startsWith('/platform/compan') ? 'page' : undefined}
-                className={cn(
-                  'flex min-h-10 items-center rounded-full px-3 text-sm font-medium',
-                  pathname.startsWith('/platform/compan') ? 'bg-solid text-on-solid' : 'hover:bg-soft',
-                )}
-              >
-                Companies
-              </Link>
+              {[
+                { href: '/platform/companies/', label: 'Companies', match: ['/platform/compan', '/platform/support'] },
+                { href: '/platform/flags/', label: 'Flags', match: ['/platform/flags'] },
+              ].map((n) => {
+                const active = n.match.some((m) => pathname.startsWith(m));
+                return (
+                  <Link
+                    key={n.href}
+                    href={n.href}
+                    aria-current={active ? 'page' : undefined}
+                    className={cn(
+                      'flex min-h-10 items-center rounded-full px-3 text-sm font-medium',
+                      active ? 'bg-solid text-on-solid' : 'hover:bg-soft',
+                    )}
+                  >
+                    {n.label}
+                  </Link>
+                );
+              })}
             </nav>
           </div>
           <div className="flex items-center gap-3 text-sm">
