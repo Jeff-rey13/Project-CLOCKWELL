@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { House, CalendarCheck, Tray, UserCircle } from '@phosphor-icons/react';
+import { ClockQueueSync } from '@/components/ClockQueueSync';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { cn } from '@/lib/cn';
 
 const NAV = [
@@ -16,7 +18,11 @@ export function MobileShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   return (
     <div className="mx-auto flex min-h-dvh max-w-[480px] flex-col bg-bg">
-      <main className="flex-1 px-4 pt-5 pb-28">{children}</main>
+      <main className="flex-1 px-4 pt-5 pb-28">
+        <OfflineBanner />
+        {children}
+      </main>
+      <ClockQueueSync />
       <nav
         aria-label="Main"
         className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[480px] border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]"

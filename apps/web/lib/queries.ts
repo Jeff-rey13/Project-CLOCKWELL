@@ -67,14 +67,36 @@ export function useWorkplace() {
           .eq('user_id', profile!.user_id)
           .maybeSingle(),
       ]);
-      if (office.error || sites.error) throw new Error('load failed');
-      return {
+      // Kept on this phone so the clock screen still works offline (PRD 8).
+      const cacheKey = `workplace-${profile!.user_id}`;
+      if (office.error || sites.error) {
+        try {
+          const cached = window.localStorage.getItem(cacheKey);
+          if (cached) return JSON.parse(cached) as Workplace;
+        } catch {
+          // no cached copy
+        }
+        throw new Error('load failed');
+      }
+      const result: Workplace = {
         office: office.data as Office,
         sites: ((sites.data ?? []) as Site[]).map((s) => ({ ...s, lat: Number(s.lat), lng: Number(s.lng) })),
         rules: (rules.data as EmployeeRules | null) ?? null,
       };
+      try {
+        window.localStorage.setItem(cacheKey, JSON.stringify(result));
+      } catch {
+        // storage full or blocked: fine, just no offline copy
+      }
+      return result;
     },
   });
+}
+
+interface Workplace {
+  office: Office;
+  sites: Site[];
+  rules: EmployeeRules | null;
 }
 
 export interface AttendanceRow {
