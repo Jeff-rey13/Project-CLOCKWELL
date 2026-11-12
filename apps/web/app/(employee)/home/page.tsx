@@ -18,6 +18,7 @@ import {
   useWorkplace,
 } from '@/lib/queries';
 import { useSession } from '@/lib/session';
+import { useQueuedClocks } from '@/lib/use-queued-clocks';
 
 function greeting(hour: number) {
   if (hour < 12) return 'Good morning';
@@ -46,6 +47,8 @@ export default function HomePage() {
   const { profile, companyName } = useSession();
   const workplace = useWorkplace();
   const openShift = useOpenShift();
+  const queued = useQueuedClocks();
+  const lastQueued = queued.length ? queued[queued.length - 1] : null;
   const attendance = useAttendance(60);
   const year = new Date().getFullYear();
   const balances = useBalances(year);
@@ -88,7 +91,14 @@ export default function HomePage() {
         <p className="my-2 font-mono text-5xl font-semibold tracking-tight" aria-live="off">
           {now ? localTime(now, tz) : '--:--'}
         </p>
-        {openShift.data ? (
+        {lastQueued ? (
+          <p className="mb-4 text-sm" role="status">
+            <span className="opacity-70">
+              {lastQueued.kind === 'clock-in' ? 'Clock-in' : 'Clock-out'} saved at {localTime(lastQueued.createdAt, tz)}, waiting to
+              send.
+            </span>
+          </p>
+        ) : openShift.data ? (
           <div className="mb-4 flex items-center gap-2 text-sm">
             <span className="opacity-70">Clocked in at {localTime(openShift.data.clock_in_at, tz)}</span>
             <StatusChip status={openShift.data.status} />
@@ -102,7 +112,15 @@ export default function HomePage() {
           href="/clock/"
           className="flex min-h-12 w-full items-center justify-center rounded-full bg-on-solid text-base font-semibold text-solid"
         >
-          {openShift.isLoading ? 'Loading' : openShift.data ? 'Clock out' : 'Clock in'}
+          {lastQueued
+            ? lastQueued.kind === 'clock-in'
+              ? 'Clock out'
+              : 'Clock in'
+            : openShift.isLoading
+              ? 'Loading'
+              : openShift.data
+                ? 'Clock out'
+                : 'Clock in'}
         </Link>
       </section>
 
@@ -120,13 +138,12 @@ export default function HomePage() {
         >
           <Airplane size={18} aria-hidden /> Apply leave
         </Link>
-        <span
-          aria-disabled
-          title="Medical claims are coming in the next release"
-          className="flex min-h-12 items-center justify-center gap-2 rounded-full border border-dashed border-line-strong text-sm font-semibold text-muted"
+        <Link
+          href="/claims/new/"
+          className="flex min-h-12 items-center justify-center gap-2 rounded-full border border-line-strong bg-surface text-sm font-semibold"
         >
-          <FirstAidKit size={18} aria-hidden /> Medical claim (soon)
-        </span>
+          <FirstAidKit size={18} aria-hidden /> Medical claim
+        </Link>
       </div>
 
       <section aria-labelledby="recent">

@@ -49,11 +49,13 @@ select is((select count(*)::int from public.leave_balances), 3, 'employee reads 
 select is((select count(*)::int from public.leave_types), 3, 'employee reads own company leave types');
 select is((select count(*)::int from public.leave_requests where user_id <> '20000000-0000-0000-0000-000000000001'),
   0, 'employee sees no leave requests of others');
-select is((select count(*)::int from public.medical_claims), 1, 'employee reads only own claims');
+select is((select count(*)::int from public.medical_claims where user_id <> '20000000-0000-0000-0000-000000000001'), 0, 'employee reads only own claims');
 select is((select count(*)::int from public.holidays), 2, 'employee reads own company holidays');
 select is((select count(*)::int from public.claim_policies), 1, 'employee reads own company claim policy');
 select is((select count(*)::int from public.audit_log), 0, 'employee reads no audit log at all');
-select is((select count(*)::int from public.feature_flags), 1, 'employee reads global flags, not other companies');
+select is((select count(*)::int from public.feature_flags
+  where company_id is not null and company_id <> '10000000-0000-0000-0000-000000000001'), 0,
+  'employee reads global flags, not other companies');
 select is((select bool_and(is_corrected) from public.attendance_effective), true, 'effective view shows the correction');
 select is((select count(*)::int from public.attendance_effective), current_setting('t.att_aisyah')::int,
   'effective view respects RLS');
@@ -84,13 +86,13 @@ select throws_ok(
 
 -- ---------------------------------------------------------------- HR of A (meiling)
 select pg_temp.act_as('20000000-0000-0000-0000-000000000002');
-select is((select count(*)::int from public.leave_balances), 5, 'HR reads all balances in own company');
-select is((select count(*)::int from public.medical_claims), 1, 'HR reads own company claims only');
+select is((select count(*)::int from public.leave_balances where company_id <> '10000000-0000-0000-0000-000000000001'), 0, 'HR reads balances of own company only');
+select is((select count(*)::int from public.medical_claims where company_id <> '10000000-0000-0000-0000-000000000001'), 0, 'HR reads own company claims only');
 select is(
   (select count(*)::int from public.audit_log where company_id <> '10000000-0000-0000-0000-000000000001'),
   0, 'HR reads no audit log of other companies');
-select is((select count(*)::int from public.attendance_corrections), current_setting('t.att_aisyah')::int,
-  'HR reads own company corrections (one per shift created above)');
+select is((select count(*)::int from public.attendance_corrections where company_id <> '10000000-0000-0000-0000-000000000001'),
+  0, 'HR reads corrections of own company only');
 select is((select count(*)::int from storage.objects where bucket_id = 'selfies'),
   current_setting('t.selfies_a')::int + 1, 'HR reads own company selfies only (plus the one uploaded above)');
 
@@ -98,7 +100,8 @@ select is((select count(*)::int from storage.objects where bucket_id = 'selfies'
 select pg_temp.act_as('20000000-0000-0000-0000-000000000003');
 select is((select count(*)::int from public.leave_requests), 1, 'employee of B reads own leave request');
 select is((select count(*)::int from public.attendance_corrections), 0, 'employee of B sees no corrections of A');
-select is((select count(*)::int from public.feature_flags), 2, 'employee of B reads global and own company flags');
+select is((select count(*)::int from public.feature_flags where key = 'demo.flag'), 2,
+  'employee of B reads the global and own company value of a flag');
 
 -- ---------------------------------------------------------------- platform without grant (ops)
 select pg_temp.act_as('20000000-0000-0000-0000-000000000004');

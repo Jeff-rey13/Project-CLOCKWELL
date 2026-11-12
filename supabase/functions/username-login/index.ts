@@ -17,10 +17,9 @@ handle('username-login', async ({ req, body }) => {
   const userKey = `${input.slug}:${username}`;
   const db = admin();
 
-  const { data: allowed, error: rateErr } = await db.rpc('login_attempt', {
-    p_user_key: userKey,
-    p_ip: clientIp(req),
-  });
+  const ip = clientIp(req);
+  // Only failed attempts count, so a whole office behind one IP can sign in at 9am.
+  const { data: allowed, error: rateErr } = await db.rpc('login_allowed', { p_user_key: userKey, p_ip: ip });
   if (rateErr) throw new Error(rateErr.message);
   if (allowed !== true) throw new AppError('RATE_LIMITED');
 
@@ -46,6 +45,7 @@ handle('username-login', async ({ req, body }) => {
     password: input.password,
   });
   if (error || !auth.session || email === NO_SUCH_EMAIL) {
+    await db.rpc('login_failed', { p_user_key: userKey, p_ip: ip });
     throw new AppError('INVALID_CREDENTIALS');
   }
 

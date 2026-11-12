@@ -10,16 +10,29 @@ import { useToast } from '@/components/ui/Toast';
 import { useSession } from '@/lib/session';
 
 /** Sends signed-out users to login and non-HR users away from HR pages. */
+const REQUIRE_HR_MFA = process.env.NEXT_PUBLIC_REQUIRE_HR_MFA === 'true';
+
 export function Guard({ role, children }: { role: 'any' | 'hr'; children: React.ReactNode }) {
   const router = useRouter();
-  const { status, profile } = useSession();
+  const { status, profile, platformRole, client } = useSession();
+  // HR pages need two-step sign-in (AAL2) when required. Employee pages do not.
+  const [mfaOk, setMfaOk] = useState(!(role === 'hr' && REQUIRE_HR_MFA));
 
   useEffect(() => {
     if (status === 'signed_out') router.replace('/login/');
+    else if (status === 'signed_in' && !profile && platformRole) router.replace('/platform/companies/');
     else if (status === 'signed_in' && role === 'hr' && profile?.app_role !== 'hr') router.replace('/home/');
-  }, [status, profile, role, router]);
+  }, [status, profile, platformRole, role, router]);
 
-  if (status !== 'signed_in' || !profile || (role === 'hr' && profile.app_role !== 'hr')) {
+  useEffect(() => {
+    if (mfaOk || status !== 'signed_in' || profile?.app_role !== 'hr') return;
+    void client.auth.mfa.getAuthenticatorAssuranceLevel().then(({ data }) => {
+      if (data?.currentLevel === 'aal2') setMfaOk(true);
+      else router.replace('/two-step/');
+    });
+  }, [mfaOk, status, profile, client, router]);
+
+  if (status !== 'signed_in' || !profile || (role === 'hr' && profile.app_role !== 'hr') || !mfaOk) {
     return (
       <div className="mx-auto max-w-[480px] px-4 pt-8">
         <ListSkeleton rows={3} />

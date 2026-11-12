@@ -11,7 +11,9 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ListSkeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
 import { callFunction } from '@/lib/api';
-import { localDate, queryKeys, useMyLeave } from '@/lib/queries';
+import { localDate, localTime, money, queryKeys, useMyClaims, useMyCorrections, useMyLeave } from '@/lib/queries';
+import { correctionReasonLabel } from '@app/shared';
+import { DecisionStatus } from '@/components/DecisionStatus';
 import { useSession } from '@/lib/session';
 
 export default function RequestsPage() {
@@ -94,7 +96,76 @@ export default function RequestsPage() {
         </ul>
       )}
 
-      <p className="mt-6 text-sm text-muted">Medical claims and time fixes will appear here in the next release.</p>
+      <div className="mt-8 mb-2 flex items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold text-muted">Medical claims</h2>
+        <Link href="/claims/new/" className="text-sm font-medium underline underline-offset-4">
+          New claim
+        </Link>
+      </div>
+      <ClaimsList />
+
+      <h2 className="mt-8 mb-2 text-sm font-semibold text-muted">Time fixes</h2>
+      <FixesList />
     </>
+  );
+}
+
+const claimDate = new Intl.DateTimeFormat('en-SG', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+
+function ClaimsList() {
+  const claims = useMyClaims();
+  if (claims.isLoading) return <ListSkeleton rows={2} />;
+  if (claims.isError) return <EmptyState title="Could not load your claims" body="Check your connection and try again." />;
+  if ((claims.data ?? []).length === 0) {
+    return <EmptyState title="No claims yet" body="Medical claims you send will show here with their status." />;
+  }
+  return (
+    <ul className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
+      {(claims.data ?? []).map((c) => (
+        <li key={c.id} className="flex flex-col gap-1 px-4 py-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold">{money(c.amount, c.currency)}</p>
+              <p className="text-sm text-muted">
+                {c.clinic}, {claimDate.format(new Date(`${c.visit_date}T00:00:00Z`))}
+              </p>
+            </div>
+            <DecisionStatus status={c.status} />
+          </div>
+          {c.decision_note ? <p className="text-sm">Note from HR: {c.decision_note}</p> : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+function FixesList() {
+  const fixes = useMyCorrections();
+  const { profile } = useSession();
+  if (fixes.isLoading) return <ListSkeleton rows={2} />;
+  if (fixes.isError) return <EmptyState title="Could not load your time fixes" body="Check your connection and try again." />;
+  if ((fixes.data ?? []).length === 0) {
+    return <EmptyState title="No time fixes" body="Ask for one from a shift in Attendance if a time is wrong." />;
+  }
+  return (
+    <ul className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
+      {(fixes.data ?? []).map((f) => (
+        <li key={f.id} className="flex flex-col gap-1 px-4 py-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold">
+                {f.field === 'clock_in' ? 'Clock-in' : 'Clock-out'} on {claimDate.format(new Date(`${f.attendance?.work_date ?? f.corrected_at.slice(0, 10)}T00:00:00Z`))}
+              </p>
+              <p className="text-sm text-muted">
+                {f.original_at ? `${localTime(f.original_at, 'Asia/Singapore')} to ` : 'Set to '}
+                {localTime(f.corrected_at, 'Asia/Singapore')}, {correctionReasonLabel[f.reason_code]}
+                {f.requested_by !== profile?.user_id ? ' (adjusted by HR)' : ''}
+              </p>
+            </div>
+            <DecisionStatus status={f.status} />
+          </div>
+          {f.note ? <p className="text-sm">{f.requested_by !== profile?.user_id ? 'Note from HR: ' : 'Your note: '}{f.note}</p> : null}
+        </li>
+      ))}
+    </ul>
   );
 }

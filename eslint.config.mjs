@@ -26,6 +26,18 @@ export default tseslint.config(
     },
   },
   {
+    // The service worker runs in its own global scope.
+    files: ['apps/web/public/sw.js'],
+    languageOptions: {
+      globals: { self: 'readonly', caches: 'readonly', fetch: 'readonly', URL: 'readonly', Promise: 'readonly' },
+    },
+  },
+  {
+    // Build scripts run in Node.
+    files: ['apps/web/scripts/**/*.mjs'],
+    languageOptions: { globals: { console: 'readonly', URL: 'readonly' } },
+  },
+  {
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],

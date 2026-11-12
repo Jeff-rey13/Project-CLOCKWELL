@@ -117,12 +117,22 @@ export default function LoginPage() {
           </>
         ) : companyName ? (
           <>
-            <div
-              aria-hidden
-              className="flex size-16 items-center justify-center rounded-card bg-solid text-2xl font-bold text-on-solid"
-            >
-              {companyName.slice(0, 1).toUpperCase()}
-            </div>
+            {lookup.state === 'ready' && lookup.company.logo_url ? (
+              // Company logo from the public logos bucket.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={`${process.env.NEXT_PUBLIC_SHARED_SUPABASE_URL ?? ''}/storage/v1/object/public/logos/${lookup.company.logo_url}`}
+                alt=""
+                className="size-16 rounded-card border border-line bg-white object-contain p-1"
+              />
+            ) : (
+              <div
+                aria-hidden
+                className="flex size-16 items-center justify-center rounded-card bg-solid text-2xl font-bold text-on-solid"
+              >
+                {companyName.slice(0, 1).toUpperCase()}
+              </div>
+            )}
             <div>
               <h1 className="text-2xl">{companyName}</h1>
               <p className="font-mono text-xs text-muted">{slug}</p>

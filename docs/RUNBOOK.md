@@ -50,6 +50,65 @@ pnpm e2e                                # needs the local stack, functions and d
   (enabled in `supabase/config.toml` under `[auth.hook.custom_access_token]`; enable the same hook in
   each remote project's Auth settings).
 
+## Settings to set on every deployed project
+
+| Where | Setting | Value |
+|---|---|---|
+| Web (Vercel env) | `NEXT_PUBLIC_REQUIRE_HR_MFA` | `true` |
+| Function secrets | `REQUIRE_HR_MFA` | `true` |
+| Function secrets | `SITE_URL` | the app address, used in invite emails |
+| Supabase Auth | Custom Access Token Hook | `public.custom_access_token_hook` |
+| Supabase Auth | Sign-ups | off (invite only) |
+| Supabase Auth | MFA, TOTP | enroll and verify on |
+| Supabase Auth | Redirect URLs | the app address(es), with `/**` |
+
+Locally these are off or open so seed users can sign in without two-step; see `supabase/config.toml`.
+
+## Platform console (vendor team)
+
+Sign in at `platform.<domain>/platform/login` (locally `http://localhost:3000/platform/login/`) with email and
+password. Locally: `ops@vendor.test` (owner) and `ops2@vendor.test` (engineer), password `Passw0rd!local`
+(local stack only, never on a deployed project); deleting a company needs both.
+
+Add a team member to a project (once per person, by an owner):
+
+1. Supabase dashboard of the project, Authentication, Users, Invite user: their email.
+2. SQL editor: `insert into public.platform_admins (user_id, role) select id, 'owner' from auth.users where email = '<their email>';`
+   Roles: `owner` and `engineer` can change companies; `support` can only read.
+3. They accept the invite, set a password, then set up two-step sign-in on first sign-in.
+
+Platform users see company names and counts only. Staff data needs a support grant from the company (task 3.2).
+
+## Scheduled jobs
+
+pg_cron calls four Edge Functions every hour (migration 0014). Each job works per company in its time zone
+and is safe to run twice.
+
+| Job | Minute | Does |
+|---|---|---|
+| `clockout-reminders` | :05 | Emails people still clocked in 30 minutes after their shift end, once per shift |
+| `mark-absent` | :20 | Records yesterday's absences (working day, no clock-in, no approved leave, not a holiday) |
+| `purge-media` | :35 | Deletes selfies after `selfie_retention_days` and records after `record_retention_days` |
+| `leave-year-rollover` | :50 | Creates the new year's leave balances (annual keeps last year's entitlement, no carry-over) |
+
+Set up once per deployed project:
+
+1. Function secret `CRON_SECRET`: a long random value.
+2. SQL editor (Vault):
+   `select vault.create_secret('https://<project-ref>.supabase.co', 'project_url');`
+   `select vault.create_secret('<same value as CRON_SECRET>', 'cron_secret');`
+3. Function secrets `RESEND_API_KEY` and `EMAIL_FROM` (a sender on your verified Resend domain).
+
+Check runs: `select * from cron.job_run_details order by start_time desc limit 20;` and
+`select status_code, created from net._http_response order by created desc limit 20;`.
+Run a job by hand: `select private.call_job('mark-absent');`.
+
+Locally the job secret is in `supabase/functions/.env` (git-ignored) and the Vault values come from `seed.sql`.
+
+## Local test inbox
+
+Invite emails on the local stack go to Mailpit: `http://127.0.0.1:54324`.
+
 ## Deploy, rollback, restore
 
 Written in Phase 3 (task 3.8). Remote deploys run only from GitHub Actions started by the owner.

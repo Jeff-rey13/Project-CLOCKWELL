@@ -18,7 +18,10 @@ import { Card } from '@/components/ui/Card';
 import { Chip, StatusChip } from '@/components/ui/Chip';
 import { ListSkeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
-import { callFunction } from '@/lib/api';
+import { callFunction, isNetworkFailure } from '@/lib/api';
+import { useFlag } from '@/lib/flags';
+import { announceQueueChange, browserStore } from '@/lib/offline-queue';
+import { useQueuedClocks } from '@/lib/use-queued-clocks';
 import { captureSelfie, openCamera, stopCamera } from '@/lib/camera';
 import { getFix, type Fix } from '@/lib/geo';
 import { localDate, localTime, queryKeys, useOpenShift, useWorkplace } from '@/lib/queries';
@@ -32,6 +35,8 @@ export default function ClockPage() {
   const { client, profile } = useSession();
   const workplace = useWorkplace();
   const openShift = useOpenShift();
+  const offlineAllowed = useFlag('offline_clock_in');
+  const queued = useQueuedClocks();
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -39,6 +44,8 @@ export default function ClockPage() {
   const requestIdRef = useRef<string>(crypto.randomUUID());
   const [facing, setFacing] = useState<'user' | 'environment'>('user');
   const [cameraError, setCameraError] = useState<ErrorCode | null>(null);
+  // True once the camera shows a picture; the selfie button waits for it.
+  const [cameraReady, setCameraReady] = useState(false);
   const [fix, setFix] = useState<Fix | null>(null);
   const [geoError, setGeoError] = useState<ErrorCode | null>(null);
   const [placeChoice, setPlaceChoice] = useState<'office' | 'home'>('office');
@@ -108,7 +115,9 @@ export default function ClockPage() {
     );
   }, [fix, rules, wp, placeChoice, homeZone]);
 
-  const isOut = !!openShift.data;
+  // A clock event saved offline decides which button to show until it is sent.
+  const lastQueued = queued.length ? queued[queued.length - 1] : null;
+  const isOut = lastQueued ? lastQueued.kind === 'clock-in' : !!openShift.data;
   const siteName = preview?.zoneId ? wp?.sites.find((s) => s.id === preview.zoneId)?.name : null;
   const nearest = wp?.sites[0]?.name ?? '-';
 
@@ -120,31 +129,72 @@ export default function ClockPage() {
       return;
     }
     setBusy(true);
+    const kind = isOut ? 'clock-out' : 'clock-in';
+    const deviceTime = new Date();
+    const body = {
+      client_request_id: requestIdRef.current,
+      lat: fix.lat,
+      lng: fix.lng,
+      accuracy_m: fix.accuracyM,
+      selfie_path: null as string | null,
+      place_choice: placeChoice,
+      device_time: deviceTime.toISOString(),
+    };
+    // Saves the event on the phone; ClockQueueSync sends it when the connection is back (PRD 8).
+    const saveOffline = async (selfie: Blob | null, selfiePath: string | null) => {
+      await browserStore().put({
+        id: body.client_request_id,
+        kind,
+        body,
+        selfie,
+        selfiePath,
+        createdAt: deviceTime.toISOString(),
+      });
+      requestIdRef.current = crypto.randomUUID();
+      announceQueueChange();
+      toast(`${isOut ? 'Clock-out' : 'Clock-in'} saved on this phone at ${localTime(deviceTime, rules.timezone)}. It will be sent when you are back online.`);
+      router.push('/home/');
+    };
     try {
-      let selfiePath: string | null = null;
+      let blob: Blob | null = null;
+      let path: string | null = null;
       if (videoRef.current && !cameraError) {
-        const blob = await captureSelfie(videoRef.current);
-        const path = `${profile.company_id}/${profile.user_id}/${localDate(new Date(), rules.timezone)}/${crypto.randomUUID()}.webp`;
-        const up = await client.storage.from('selfies').upload(path, blob, { contentType: 'image/webp', upsert: false });
-        if (up.error) {
-          setError('SERVER_ERROR');
+        try {
+          blob = await captureSelfie(videoRef.current);
+        } catch {
+          // The camera had no picture yet: ask again rather than report a server problem.
+          setError('SELFIE_REQUIRED');
           return;
         }
-        selfiePath = path;
+        path = `${profile.company_id}/${profile.user_id}/${localDate(deviceTime, rules.timezone)}/${crypto.randomUUID()}.webp`;
       } else if (wp.office.require_selfie) {
         setError(cameraError ?? 'SELFIE_REQUIRED');
         return;
       }
 
-      const res = await callFunction<{ status: string }>(client, isOut ? 'clock-out' : 'clock-in', {
-        client_request_id: requestIdRef.current,
-        lat: fix.lat,
-        lng: fix.lng,
-        accuracy_m: fix.accuracyM,
-        selfie_path: selfiePath,
-        place_choice: placeChoice,
-        device_time: new Date().toISOString(),
-      });
+      if (offlineAllowed && !navigator.onLine) {
+        await saveOffline(blob, path);
+        return;
+      }
+      if (blob && path) {
+        const up = await client.storage.from('selfies').upload(path, blob, { contentType: 'image/webp', upsert: false });
+        if (up.error) {
+          if (offlineAllowed && !navigator.onLine) {
+            await saveOffline(blob, path);
+            return;
+          }
+          setError('SERVER_ERROR');
+          return;
+        }
+        body.selfie_path = path;
+      }
+
+      const res = await callFunction<{ status: string }>(client, kind, body);
+      if (!res.ok && offlineAllowed && isNetworkFailure(res)) {
+        // The selfie is already uploaded; keep the same request id so it is recorded once.
+        await saveOffline(null, null);
+        return;
+      }
       if (!res.ok) {
         // A new attempt after a definite answer gets a new id.
         requestIdRef.current = crypto.randomUUID();
@@ -167,7 +217,8 @@ export default function ClockPage() {
     }
   };
 
-  if (workplace.isLoading || openShift.isLoading) return <ListSkeleton rows={4} />;
+  const online = typeof navigator === 'undefined' || navigator.onLine;
+  if (workplace.isLoading || (openShift.isLoading && online)) return <ListSkeleton rows={4} />;
   if (!profile?.office_id || workplace.isError || !wp || !rules) {
     return (
       <Card>
@@ -224,6 +275,7 @@ export default function ClockPage() {
           autoPlay
           playsInline
           muted
+          onLoadedData={() => setCameraReady(true)}
           className="size-full object-cover"
           style={{ transform: facing === 'user' ? 'scaleX(-1)' : undefined }}
         />
@@ -240,7 +292,10 @@ export default function ClockPage() {
         ) : null}
         <button
           type="button"
-          onClick={() => setFacing((f) => (f === 'user' ? 'environment' : 'user'))}
+          onClick={() => {
+            setCameraReady(false);
+            setFacing((f) => (f === 'user' ? 'environment' : 'user'));
+          }}
           aria-label="Switch camera"
           className="absolute right-3 bottom-3 flex size-11 items-center justify-center rounded-full bg-on-solid text-solid"
         >
@@ -302,8 +357,18 @@ export default function ClockPage() {
         </p>
       ) : null}
 
-      <Button block onClick={submit} loading={busy}>
-        {isOut ? 'Take selfie and clock out' : 'Take selfie and clock in'}
+      <Button
+        block
+        onClick={submit}
+        loading={busy}
+        // Wait for a picture when a selfie is needed; if the camera is blocked, the press explains why.
+        disabled={wp.office.require_selfie && !cameraReady && !cameraError}
+      >
+        {wp.office.require_selfie && !cameraReady && !cameraError
+          ? 'Starting camera'
+          : isOut
+            ? 'Take selfie and clock out'
+            : 'Take selfie and clock in'}
       </Button>
       <p className="mt-3 text-center text-xs text-muted">Time is recorded by the server.</p>
     </>

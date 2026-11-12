@@ -15,11 +15,14 @@ export function AttendanceList({
   timezone,
   loading,
   failed,
+  onFix,
 }: {
   rows: AttendanceRow[] | undefined;
   timezone: string;
   loading?: boolean;
   failed?: boolean;
+  /** When set, each shift gets a "Request fix" button. */
+  onFix?: (row: AttendanceRow) => void;
 }) {
   if (loading) return <ListSkeleton rows={3} />;
   if (failed) {
@@ -44,6 +47,16 @@ export function AttendanceList({
             {r.is_corrected ? <Chip tone="outline">Corrected</Chip> : null}
             {r.clock_in_place === 'home' ? <Chip tone="outline">Home</Chip> : null}
             {r.flags.includes('outside_zone') ? <Chip tone="danger">Check location</Chip> : null}
+            {onFix ? (
+              <button
+                type="button"
+                onClick={() => onFix(r)}
+                aria-label={`Request a time fix for ${r.work_date}`}
+                className="min-h-9 px-2 text-xs font-semibold underline underline-offset-4"
+              >
+                Request fix
+              </button>
+            ) : null}
           </div>
         </li>
       ))}
