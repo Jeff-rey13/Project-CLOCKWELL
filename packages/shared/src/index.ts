@@ -13,3 +13,4 @@ export * from './schemas/corrections.ts';
 export * from './schemas/offices.ts';
 export * from './schemas/settings.ts';
 export * from './schemas/platform.ts';
+export * from './schemas/support.ts';

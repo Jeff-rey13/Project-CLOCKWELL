@@ -511,3 +511,7 @@ import_map = "./functions/deno.json"
 verify_jwt = false
 import_map = "./functions/deno.json"
 
+[functions.support-view]
+verify_jwt = false
+import_map = "./functions/deno.json"
+

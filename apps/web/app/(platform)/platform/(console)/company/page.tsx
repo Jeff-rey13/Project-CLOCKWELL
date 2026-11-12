@@ -176,9 +176,17 @@ function Support({ company }: { company: PlatformCompany }) {
     <Card>
       <CardTitle className="mb-2">Support access</CardTitle>
       {company.support_until ? (
-        <p className="text-sm">
-          Granted by the company until <span className="font-semibold">{dateTime.format(new Date(company.support_until))}</span>.
-        </p>
+        <div className="flex flex-col gap-3">
+          <p className="text-sm">
+            Granted by the company until <span className="font-semibold">{dateTime.format(new Date(company.support_until))}</span>.
+          </p>
+          <Link
+            href={`/platform/support/?company=${company.id}`}
+            className="flex min-h-11 items-center justify-center self-start rounded-full bg-solid px-5 text-[15px] font-semibold text-on-solid"
+          >
+            Open as support (logged)
+          </Link>
+        </div>
       ) : (
         <p className="text-sm text-muted">No active grant. The company&apos;s HR can grant access from their settings.</p>
       )}
