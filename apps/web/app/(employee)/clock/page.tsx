@@ -39,6 +39,8 @@ export default function ClockPage() {
   const requestIdRef = useRef<string>(crypto.randomUUID());
   const [facing, setFacing] = useState<'user' | 'environment'>('user');
   const [cameraError, setCameraError] = useState<ErrorCode | null>(null);
+  // True once the camera shows a picture; the selfie button waits for it.
+  const [cameraReady, setCameraReady] = useState(false);
   const [fix, setFix] = useState<Fix | null>(null);
   const [geoError, setGeoError] = useState<ErrorCode | null>(null);
   const [placeChoice, setPlaceChoice] = useState<'office' | 'home'>('office');
@@ -123,7 +125,14 @@ export default function ClockPage() {
     try {
       let selfiePath: string | null = null;
       if (videoRef.current && !cameraError) {
-        const blob = await captureSelfie(videoRef.current);
+        let blob: Blob;
+        try {
+          blob = await captureSelfie(videoRef.current);
+        } catch {
+          // The camera had no picture yet: ask again rather than report a server problem.
+          setError('SELFIE_REQUIRED');
+          return;
+        }
         const path = `${profile.company_id}/${profile.user_id}/${localDate(new Date(), rules.timezone)}/${crypto.randomUUID()}.webp`;
         const up = await client.storage.from('selfies').upload(path, blob, { contentType: 'image/webp', upsert: false });
         if (up.error) {
@@ -224,6 +233,7 @@ export default function ClockPage() {
           autoPlay
           playsInline
           muted
+          onLoadedData={() => setCameraReady(true)}
           className="size-full object-cover"
           style={{ transform: facing === 'user' ? 'scaleX(-1)' : undefined }}
         />
@@ -240,7 +250,10 @@ export default function ClockPage() {
         ) : null}
         <button
           type="button"
-          onClick={() => setFacing((f) => (f === 'user' ? 'environment' : 'user'))}
+          onClick={() => {
+            setCameraReady(false);
+            setFacing((f) => (f === 'user' ? 'environment' : 'user'));
+          }}
           aria-label="Switch camera"
           className="absolute right-3 bottom-3 flex size-11 items-center justify-center rounded-full bg-on-solid text-solid"
         >
@@ -302,8 +315,18 @@ export default function ClockPage() {
         </p>
       ) : null}
 
-      <Button block onClick={submit} loading={busy}>
-        {isOut ? 'Take selfie and clock out' : 'Take selfie and clock in'}
+      <Button
+        block
+        onClick={submit}
+        loading={busy}
+        // Wait for a picture when a selfie is needed; if the camera is blocked, the press explains why.
+        disabled={wp.office.require_selfie && !cameraReady && !cameraError}
+      >
+        {wp.office.require_selfie && !cameraReady && !cameraError
+          ? 'Starting camera'
+          : isOut
+            ? 'Take selfie and clock out'
+            : 'Take selfie and clock in'}
       </Button>
       <p className="mt-3 text-center text-xs text-muted">Time is recorded by the server.</p>
     </>

@@ -12,8 +12,24 @@ export function stopCamera(stream: MediaStream | null): void {
   stream?.getTracks().forEach((t) => t.stop());
 }
 
+/** Resolves once the camera has produced a frame, or rejects after `ms`. */
+export function waitForFrame(video: HTMLVideoElement, ms = 4000): Promise<void> {
+  if (video.readyState >= 2 && video.videoWidth > 0) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const done = () => {
+      clearTimeout(timer);
+      video.removeEventListener('loadeddata', done);
+      if (video.videoWidth > 0) resolve();
+      else reject(new Error('camera not ready'));
+    };
+    const timer = setTimeout(done, ms);
+    video.addEventListener('loadeddata', done);
+  });
+}
+
 /** Grabs a frame and compresses it to WebP, longest side 640 px, quality 0.7. */
 export async function captureSelfie(video: HTMLVideoElement): Promise<Blob> {
+  await waitForFrame(video);
   const w = video.videoWidth;
   const h = video.videoHeight;
   const scale = Math.min(1, SELFIE_MAX_SIDE / Math.max(w, h));
