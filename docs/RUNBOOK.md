@@ -79,6 +79,32 @@ Add a team member to a project (once per person, by an owner):
 
 Platform users see company names and counts only. Staff data needs a support grant from the company (task 3.2).
 
+## Scheduled jobs
+
+pg_cron calls four Edge Functions every hour (migration 0014). Each job works per company in its time zone
+and is safe to run twice.
+
+| Job | Minute | Does |
+|---|---|---|
+| `clockout-reminders` | :05 | Emails people still clocked in 30 minutes after their shift end, once per shift |
+| `mark-absent` | :20 | Records yesterday's absences (working day, no clock-in, no approved leave, not a holiday) |
+| `purge-media` | :35 | Deletes selfies after `selfie_retention_days` and records after `record_retention_days` |
+| `leave-year-rollover` | :50 | Creates the new year's leave balances (annual keeps last year's entitlement, no carry-over) |
+
+Set up once per deployed project:
+
+1. Function secret `CRON_SECRET`: a long random value.
+2. SQL editor (Vault):
+   `select vault.create_secret('https://<project-ref>.supabase.co', 'project_url');`
+   `select vault.create_secret('<same value as CRON_SECRET>', 'cron_secret');`
+3. Function secrets `RESEND_API_KEY` and `EMAIL_FROM` (a sender on your verified Resend domain).
+
+Check runs: `select * from cron.job_run_details order by start_time desc limit 20;` and
+`select status_code, created from net._http_response order by created desc limit 20;`.
+Run a job by hand: `select private.call_job('mark-absent');`.
+
+Locally the job secret is in `supabase/functions/.env` (git-ignored) and the Vault values come from `seed.sql`.
+
 ## Local test inbox
 
 Invite emails on the local stack go to Mailpit: `http://127.0.0.1:54324`.

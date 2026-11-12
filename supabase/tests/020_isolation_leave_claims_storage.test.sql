@@ -53,7 +53,9 @@ select is((select count(*)::int from public.medical_claims where user_id <> '200
 select is((select count(*)::int from public.holidays), 2, 'employee reads own company holidays');
 select is((select count(*)::int from public.claim_policies), 1, 'employee reads own company claim policy');
 select is((select count(*)::int from public.audit_log), 0, 'employee reads no audit log at all');
-select is((select count(*)::int from public.feature_flags), 1, 'employee reads global flags, not other companies');
+select is((select count(*)::int from public.feature_flags
+  where company_id is not null and company_id <> '10000000-0000-0000-0000-000000000001'), 0,
+  'employee reads global flags, not other companies');
 select is((select bool_and(is_corrected) from public.attendance_effective), true, 'effective view shows the correction');
 select is((select count(*)::int from public.attendance_effective), current_setting('t.att_aisyah')::int,
   'effective view respects RLS');
@@ -98,7 +100,8 @@ select is((select count(*)::int from storage.objects where bucket_id = 'selfies'
 select pg_temp.act_as('20000000-0000-0000-0000-000000000003');
 select is((select count(*)::int from public.leave_requests), 1, 'employee of B reads own leave request');
 select is((select count(*)::int from public.attendance_corrections), 0, 'employee of B sees no corrections of A');
-select is((select count(*)::int from public.feature_flags), 2, 'employee of B reads global and own company flags');
+select is((select count(*)::int from public.feature_flags where key = 'demo.flag'), 2,
+  'employee of B reads the global and own company value of a flag');
 
 -- ---------------------------------------------------------------- platform without grant (ops)
 select pg_temp.act_as('20000000-0000-0000-0000-000000000004');

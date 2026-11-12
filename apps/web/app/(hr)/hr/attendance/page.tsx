@@ -62,6 +62,17 @@ export default function HrAttendancePage() {
 
   const rows = useMemo(() => log.data ?? [], [log.data]);
 
+  // Recorded by the nightly mark-absent job for days that have ended.
+  const absences = useQuery({
+    queryKey: ['hr-absences', profile?.company_id ?? '', date],
+    enabled: profile?.app_role === 'hr' && /^\d{4}-\d{2}-\d{2}$/.test(date),
+    queryFn: async () => {
+      const { data, error } = await client.from('absences').select('user_id').eq('work_date', date);
+      if (error) throw new Error('load failed');
+      return (data ?? []).map((a) => a.user_id as string);
+    },
+  });
+
   const exportCsv = () => {
     const header = ['Date', 'Employee', 'Employee ID', 'Clock in', 'Clock out', 'Status', 'Place', 'Distance (m)', 'Flags', 'Corrected'];
     const lines = rows.map((r) =>
@@ -123,7 +134,14 @@ export default function HrAttendancePage() {
           <EmptyState title="Could not load the day log" body="Check your connection and try again." />
         ) : rows.length === 0 ? (
           <EmptyState title="No clock-ins on this day" />
-        ) : (
+        ) : null}
+        {(absences.data ?? []).length > 0 ? (
+          <div className="mb-3 rounded-box bg-soft px-3 py-2 text-sm">
+            <span className="font-semibold">Absent ({absences.data!.length}): </span>
+            {absences.data!.map((id) => name(id)).join(', ')}
+          </div>
+        ) : null}
+        {log.isLoading || log.isError || rows.length === 0 ? null : (
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="border-b border-line text-xs text-muted">
               <tr>

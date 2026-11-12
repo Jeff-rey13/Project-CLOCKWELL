@@ -519,3 +519,19 @@ import_map = "./functions/deno.json"
 verify_jwt = false
 import_map = "./functions/deno.json"
 
+[functions.clockout-reminders]
+verify_jwt = false
+import_map = "./functions/deno.json"
+
+[functions.mark-absent]
+verify_jwt = false
+import_map = "./functions/deno.json"
+
+[functions.purge-media]
+verify_jwt = false
+import_map = "./functions/deno.json"
+
+[functions.leave-year-rollover]
+verify_jwt = false
+import_map = "./functions/deno.json"
+

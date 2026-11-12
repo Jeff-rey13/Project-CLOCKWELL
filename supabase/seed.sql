@@ -81,6 +81,11 @@ insert into public.attendance (
    '40000000-0000-0000-0000-000000000003', 16, '2026-11-04 10:00:00+00', 'site', 'late', '{}',
    '50000000-0000-0000-0000-000000000002');
 
+-- Scheduled jobs (migration 0014), local stack only: where pg_net reaches the functions, and the
+-- local job secret (the same value as supabase/functions/.env). Deployed projects set their own.
+select vault.create_secret('http://supabase_kong_attendance-platform:8000', 'project_url');
+select vault.create_secret('local-cron-secret-not-for-production', 'cron_secret');
+
 -- Leave, claims and platform settings (migration 0002)
 insert into public.platform_settings (key, value) values
   ('min_app_version', '"0.1.0"'),
